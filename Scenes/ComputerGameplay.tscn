@@ -1,0 +1,69 @@
+[gd_scene format=3 uid="uid://br8kwmewuq11c"]
+
+[ext_resource type="Script" uid="uid://vabr8muhk8ip" path="res://Scenes/ComputerGameplay.cs" id="1_arc0b"]
+
+[node name="ComputerGameplay" type="Control" unique_id=355550135]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_arc0b")
+
+[node name="Nombre" type="Label" parent="." unique_id=542339037]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="Departamento" type="Label" parent="." unique_id=1899917340]
+layout_mode = 0
+offset_left = 344.0
+offset_top = 190.0
+offset_right = 384.0
+offset_bottom = 213.0
+
+[node name="IP" type="Label" parent="." unique_id=1102825429]
+layout_mode = 0
+offset_left = 226.0
+offset_top = 155.0
+offset_right = 266.0
+offset_bottom = 178.0
+
+[node name="MAC" type="Label" parent="." unique_id=1859062760]
+layout_mode = 0
+offset_left = 313.0
+offset_top = 11.0
+offset_right = 353.0
+offset_bottom = 34.0
+
+[node name="TiempoRestante" type="Label" parent="." unique_id=1554669873]
+layout_mode = 0
+offset_left = 161.0
+offset_top = 1.0
+offset_right = 201.0
+offset_bottom = 24.0
+
+[node name="Hora" type="Label" parent="." unique_id=1709280765]
+layout_mode = 0
+offset_left = 7.0
+offset_top = 176.0
+offset_right = 59.0
+offset_bottom = 199.0
+
+[node name="Puntos" type="Label" parent="." unique_id=2057081809]
+layout_mode = 0
+offset_left = 11.0
+offset_top = 237.0
+offset_right = 51.0
+offset_bottom = 260.0
+
+[node name="AutoAceptar" type="Label" parent="." unique_id=907018263]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 259.0
+offset_right = 50.0
+offset_bottom = 282.0
+
+[node name="Conexiones" type="Label" parent="." unique_id=2064550039]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 296.0
+offset_right = 52.0
+offset_bottom = 319.0

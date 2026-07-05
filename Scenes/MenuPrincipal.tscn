@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://byp4lo4et57j"]
+
+[ext_resource type="Texture2D" uid="uid://cqd4q11klkua5" path="res://menu_principal.png" id="1_3k1ur"]
+[ext_resource type="Script" uid="uid://14f8ci4b7fdj" path="res://Scripts/MenuPrincipal.cs" id="1_wvohi"]
+[ext_resource type="AudioStream" uid="uid://4m2dde2wahn6" path="res://musicalobby.mp3" id="3_bt1tr"]
+
+[node name="Node2D" type="Node2D" unique_id=861368183]
+script = ExtResource("1_wvohi")
+
+[node name="Control" type="Control" parent="." unique_id=1845013731]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1153.0
+offset_bottom = 649.0
+
+[node name="TextureRect" type="TextureRect" parent="Control" unique_id=718224001]
+layout_mode = 0
+offset_right = 1153.0
+offset_bottom = 649.0
+texture = ExtResource("1_3k1ur")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control" unique_id=2074930447]
+layout_mode = 0
+offset_left = 452.0
+offset_top = 350.0
+offset_right = 708.0
+offset_bottom = 556.0
+
+[node name="Singleplayer" type="Button" parent="Control/VBoxContainer" unique_id=553792421]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "
+ "
+
+[node name="Multiplayer" type="Button" parent="Control/VBoxContainer" unique_id=160032478]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "
+ "
+
+[node name="Opciones" type="Button" parent="Control/VBoxContainer" unique_id=845717183]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "
+ "
+
+[node name="Salir" type="Button" parent="Control/VBoxContainer" unique_id=765059266]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "
+ "
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=1979720551]
+stream = ExtResource("3_bt1tr")
+volume_db = 3.152
+autoplay = true
+panning_strength = 0.0
+parameters/looping = true
