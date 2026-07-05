@@ -37,9 +37,12 @@ public partial class Player : CharacterBody2D
 			direccion.X ++;
 			anim.Play("walkright");
 		}
-		else { anim.Play("idle"); }
+		if (direccion == Vector2.Zero) { anim.Play("idle"); }
+		if (Input.IsKeyPressed(Key.Shift)) { Speed  = 400; }
+		else { Speed = 180; }
 
 		Position += direccion.Normalized() * Speed * (float) delta;
+		MoveAndSlide();
 	}
 	
 
