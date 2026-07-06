@@ -35,6 +35,16 @@ public partial class ComputerGameplay : Control
 	// Datos inferiores
 	private int puntos = 0;
 	private int conexionesHoy=0;
+	//Detectar final del juego
+	private int erroresAceptar = 0;
+	private int erroresRechazar = 0;
+	private int autoAceptadas = 0;
+
+	private bool juegoTerminado = false;
+
+	private const int MAX_ERRORES_ACEPTAR = 5;
+	private const int MAX_ERRORES_RECHAZAR = 5;
+	private const int MAX_AUTOACEPTADAS = 3;
 
 	// Listas de datos
 	private string[] nombres =
@@ -126,6 +136,9 @@ public partial class ComputerGameplay : Control
 
 	private void ActualizarTiempoPartida(double delta)
 	{
+		if (juegoTerminado)
+			return;
+
 		if (tiempoPartida > 0)
 		{
 			tiempoPartida -= delta;
@@ -134,6 +147,8 @@ public partial class ComputerGameplay : Control
 		TimeSpan tiempo = TimeSpan.FromSeconds(Math.Max(0, tiempoPartida));
 
 		lblTiempo.Text = tiempo.ToString(@"mm\:ss");
+
+		VerificarFinDelJuego();
 	}
 
 	private void ActualizarHora()
@@ -143,12 +158,22 @@ public partial class ComputerGameplay : Control
 
 	private void ActualizarAutoAceptar(double delta)
 	{
+		if (juegoTerminado)
+			return;
+
 		autoAceptar -= delta;
 
 		lblAutoAceptar.Text = Math.Ceiling(autoAceptar).ToString("00");
 
 		if (autoAceptar <= 0)
 		{
+			autoAceptadas++;
+
+			VerificarFinDelJuego();
+
+			if (juegoTerminado)
+				return;
+
 			GenerarSolicitud();
 
 			autoAceptar = 15;
@@ -228,11 +253,14 @@ public bool ConexionEsInfectada()
 		{
 			// Aceptó un virus
 			SumarPuntos(-20);
+			erroresAceptar++;
 		}
 		else
 		{
 			SumarPuntos(10);
 		}
+
+		VerificarFinDelJuego();
 	}
 
 	public void Rechazar()
@@ -244,20 +272,79 @@ public bool ConexionEsInfectada()
 		else
 		{
 			SumarPuntos(-10);
+			erroresRechazar++;
 		}
+
+		VerificarFinDelJuego();
 	}
 
 	private void OnAceptarPressed()
 	{
+		if (juegoTerminado)
+			return;
+
 		Aceptar();
+
+		if (juegoTerminado)
+			return;
+
 		GenerarSolicitud();
 		autoAceptar = 15;
 	}
 
 	private void OnRechazarPressed()
 	{
+		if (juegoTerminado)
+			return;
+
 		Rechazar();
+
+		if (juegoTerminado)
+			return;
+
 		GenerarSolicitud();
 		autoAceptar = 15;
 	}
-}
+	private void VerificarFinDelJuego()
+	{
+		if (erroresAceptar >= MAX_ERRORES_ACEPTAR)
+		{
+			FinDelJuego("¡Aceptaste demasiados virus!");
+			return;
+		}
+
+		if (erroresRechazar >= MAX_ERRORES_RECHAZAR)
+		{
+			FinDelJuego("¡Rechazaste demasiadas conexiones válidas!");
+			return;
+		}
+
+		if (autoAceptadas >= MAX_AUTOACEPTADAS)
+		{
+			FinDelJuego("¡Se autoaceptaron demasiadas conexiones!");
+			return;
+		}
+
+		if (tiempoPartida <= 0)
+		{
+			FinDelJuego("¡Se acabó el tiempo!");
+		}
+	}
+
+	private void FinDelJuego(string motivo)
+	{
+		juegoTerminado = true;
+
+		AcceptDialog dialogo = new AcceptDialog();
+		dialogo.Title = "Fin del juego";
+		dialogo.DialogText = motivo;
+
+		AddChild(dialogo);
+		dialogo.PopupCentered();
+
+		dialogo.Confirmed += () =>
+		{
+			GetTree().ReloadCurrentScene();
+		};
+	}
+	}

@@ -18,7 +18,7 @@ public partial class Chair : Node2D
 	{
 		if(playerNear && Input.IsKeyPressed(Key.E))
 		{
-			GD.Print("AAAAAAAAAAAAAAAAA");
+			GetTree().ChangeSceneToFile("res://Scenes/ComputerGameplay.tscn");
 		}
 	}
 
