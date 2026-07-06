@@ -94,6 +94,12 @@ public partial class ComputerGameplay : Control
 		lblAutoAceptar = GetNode<Label>("AutoAceptar");
 		lblConexiones = GetNode<Label>("Conexiones");
 
+		TextureButton btnAceptar = GetNode<TextureButton>("BtnAceptar");
+		TextureButton btnRechazar = GetNode<TextureButton>("BtnRechazar");
+
+		btnAceptar.Pressed += OnAceptarPressed;
+		btnRechazar.Pressed += OnRechazarPressed;
+
 		InicializarPantalla();
 	}
 
@@ -214,5 +220,44 @@ public bool ConexionEsInfectada()
 	{
 		conexionesHoy++;
 		lblConexiones.Text = conexionesHoy.ToString();
+	}
+
+	public void Aceptar()
+	{
+		if (ConexionEsInfectada())
+		{
+			// Aceptó un virus
+			SumarPuntos(-20);
+		}
+		else
+		{
+			SumarPuntos(10);
+		}
+	}
+
+	public void Rechazar()
+	{
+		if (ConexionEsInfectada())
+		{
+			SumarPuntos(20);
+		}
+		else
+		{
+			SumarPuntos(-10);
+		}
+	}
+
+	private void OnAceptarPressed()
+	{
+		Aceptar();
+		GenerarSolicitud();
+		autoAceptar = 15;
+	}
+
+	private void OnRechazarPressed()
+	{
+		Rechazar();
+		GenerarSolicitud();
+		autoAceptar = 15;
 	}
 }
