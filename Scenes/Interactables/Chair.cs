@@ -24,8 +24,10 @@ public partial class Chair : Node2D
 
 	private void OnBodyEntered(Node body)
 	{
+		GD.Print($"Entró algo: + {body.Name}");
 		if(body is Player)
 		{
+			GD.Print("Entró el Player");
 			playerNear = true;
 			GetNode<Sprite2D>("InteractPrompt").Visible = true;
 		}
