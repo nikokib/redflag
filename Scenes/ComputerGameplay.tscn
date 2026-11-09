@@ -1,121 +1,12 @@
 [gd_scene format=3 uid="uid://br8kwmewuq11c"]
 
 [ext_resource type="Script" uid="uid://vabr8muhk8ip" path="res://Scenes/ComputerGameplay.cs" id="1_arc0b"]
-[ext_resource type="Texture2D" uid="uid://mad4h6eslrjy" path="res://Sprites/InterfazSinDatos.png" id="2_o3n0s"]
-[ext_resource type="Texture2D" uid="uid://cg85cl2y4s4uf" path="res://Sprites/ButtonAceptar_133x29.png" id="3_s0o1e"]
-[ext_resource type="Texture2D" uid="uid://cr8ti2ntkkce4" path="res://Sprites/ButtonRechazar_133x29.png" id="4_2p6ww"]
 
-[sub_resource type="FontFile" id="FontFile_3fn45"]
-cache/0/variation_coordinates = {}
-cache/0/face_index = 0
-cache/0/embolden = 0.0
-cache/0/transform = Transform2D(1, 0, 0, 1, 0, 0)
-cache/0/spacing_top = 0
-cache/0/spacing_bottom = 0
-cache/0/spacing_space = 0
-cache/0/spacing_glyph = 0
-cache/0/baseline_offset = 0.0
-cache/0/16/0/ascent = 0.0
-cache/0/16/0/descent = 0.0
-cache/0/16/0/underline_position = 0.0
-cache/0/16/0/underline_thickness = 0.0
-cache/0/16/0/scale = 1.0
-
-[node name="ComputerGameplay" type="Control" unique_id=355550135]
+[node name="ComputerGameplay" type="Control"]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_arc0b")
-
-[node name="Nombre" type="Label" parent="." unique_id=542339037]
-layout_mode = 0
-offset_left = 545.0
-offset_top = 179.0
-offset_right = 651.0
-offset_bottom = 202.0
-theme_override_fonts/font = SubResource("FontFile_3fn45")
-
-[node name="Departamento" type="Label" parent="." unique_id=1899917340]
-layout_mode = 0
-offset_left = 602.0
-offset_top = 202.0
-offset_right = 782.0
-offset_bottom = 225.0
-
-[node name="IP" type="Label" parent="." unique_id=1102825429]
-layout_mode = 0
-offset_left = 509.0
-offset_top = 221.0
-offset_right = 639.0
-offset_bottom = 244.0
-
-[node name="MAC" type="Label" parent="." unique_id=1859062760]
-layout_mode = 0
-offset_left = 529.0
-offset_top = 242.0
-offset_right = 653.0
-offset_bottom = 265.0
-
-[node name="TiempoRestante" type="Label" parent="." unique_id=1554669873]
-layout_mode = 0
-offset_left = 898.0
-offset_top = 148.0
-offset_right = 956.0
-offset_bottom = 171.0
-
-[node name="Hora" type="Label" parent="." unique_id=1709280765]
-layout_mode = 0
-offset_left = 1032.0
-offset_top = 597.0
-offset_right = 1119.0
-offset_bottom = 620.0
-
-[node name="Puntos" type="Label" parent="." unique_id=2057081809]
-layout_mode = 0
-offset_left = 296.0
-offset_top = 488.0
-offset_right = 367.0
-offset_bottom = 511.0
-
-[node name="AutoAceptar" type="Label" parent="." unique_id=907018263]
-layout_mode = 0
-offset_left = 620.0
-offset_top = 489.0
-offset_right = 695.0
-offset_bottom = 512.0
-
-[node name="Conexiones" type="Label" parent="." unique_id=2064550039]
-layout_mode = 0
-offset_left = 920.0
-offset_top = 490.0
-offset_right = 953.0
-offset_bottom = 513.0
-
-[node name="Fondo" type="Sprite2D" parent="." unique_id=398763531]
-z_index = -1
-position = Vector2(578.375, 327.87503)
-scale = Vector2(0.3901387, 0.3006344)
-texture = ExtResource("2_o3n0s")
-
-[node name="BtnAceptar" type="TextureButton" parent="." unique_id=1303594226]
-custom_minimum_size = Vector2(10, 10)
-custom_maximum_size = Vector2(133, 29)
-layout_mode = 0
-offset_left = 515.0
-offset_top = 273.0
-offset_right = 648.0
-offset_bottom = 302.0
-texture_normal = ExtResource("3_s0o1e")
-texture_pressed = ExtResource("3_s0o1e")
-texture_hover = ExtResource("3_s0o1e")
-
-[node name="BtnRechazar" type="TextureButton" parent="." unique_id=1960763711]
-custom_minimum_size = Vector2(10, 10)
-custom_maximum_size = Vector2(133, 29)
-layout_mode = 0
-offset_left = 678.0
-offset_top = 273.0
-offset_right = 811.0
-offset_bottom = 302.0
-texture_normal = ExtResource("4_2p6ww")
-texture_pressed = ExtResource("4_2p6ww")
-texture_hover = ExtResource("4_2p6ww")
