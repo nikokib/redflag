@@ -36,6 +36,12 @@ public static class PlayerPreferences
 	public static bool ColorblindMode => (bool)Config.GetValue("accessibility", "colorblind", false);
 	public static bool HudEnabled => (bool)Config.GetValue("accessibility", "hud", true);
 
+	// Personalización del avatar (ropa, cabello, piel, género). Solo estética.
+	public static int AvatarRopa => (int)Config.GetValue("avatar", "ropa", 0);
+	public static int AvatarCabello => (int)Config.GetValue("avatar", "cabello", 0);
+	public static int AvatarPiel => (int)Config.GetValue("avatar", "piel", 0);
+	public static int AvatarGenero => (int)Config.GetValue("avatar", "genero", 0);
+
 	public static void SaveName(string name) => Set("profile", "player_name", (name ?? "").Trim()[..Math.Min((name ?? "").Trim().Length, 24)]);
 	public static void SaveAudio(float music, float sfx) => SaveAudio(MasterVolume, music, sfx);
 	public static void SaveAudio(float master, float music, float sfx)
@@ -48,6 +54,14 @@ public static class PlayerPreferences
 	public static void SaveDisplay(int width, int height, bool fullscreen) { Config.SetValue("display", "width", width); Config.SetValue("display", "height", height); Config.SetValue("display", "fullscreen", fullscreen); Save(); }
 	public static void SaveGraphics(bool vsync) { Config.SetValue("graphics", "vsync", vsync); Save(); }
 	public static void SaveAccessibility(bool colorblind, bool hud) { Config.SetValue("accessibility", "colorblind", colorblind); Config.SetValue("accessibility", "hud", hud); Save(); }
+	public static void SaveAvatar(int ropa, int cabello, int piel, int genero)
+	{
+		Config.SetValue("avatar", "ropa", ropa);
+		Config.SetValue("avatar", "cabello", cabello);
+		Config.SetValue("avatar", "piel", piel);
+		Config.SetValue("avatar", "genero", genero);
+		Save();
+	}
 	private static void Set(string section, string key, Variant value) { Config.SetValue(section, key, value); Save(); }
 	private static void Save() => Config.Save(Path);
 

@@ -12,7 +12,9 @@ public partial class IconoSistema : Control
 	{
 		RedFlag, Pc, Navegador, Correo, Chat, Logs, Incidentes, Firewall, Antivirus, Camaras, Notas, Calculadora, Papelera,
 		Dashboard, Solicitudes, Whitelist, Blacklist, Red, Ajustes, Personas, Prohibido, Antena, Mas, Check, Cruz,
-		Guardar, Reiniciar
+		Guardar, Reiniciar,
+		Apagar, Altavoz, Accesible, Persona, Camiseta, Info, GeneroM, GeneroF, GeneroN, Cabello, Cara, SobreNeon,
+		Advertencia, FlechaIzq, FlechaDer, Lupa
 	}
 
 	public Clase Tipo = Clase.RedFlag;
@@ -318,6 +320,123 @@ public partial class IconoSistema : Control
 				float r = s.X * 0.34f;
 				DrawArc(centro, r, Mathf.Pi * 0.15f, Mathf.Pi * 1.75f, 24, c, g * 1.3f);
 				DrawColoredPolygon(new[] { P(0.88f, 0.30f), P(0.88f, 0.62f), P(0.60f, 0.50f) }, c);
+				break;
+			}
+			case Clase.Apagar:
+			{
+				Vector2 centro = P(0.5f, 0.55f);
+				float r = s.X * 0.32f;
+				DrawArc(centro, r, -Mathf.Pi * 0.5f + 0.6f, -Mathf.Pi * 0.5f + Mathf.Tau - 0.6f, 28, c, g * 1.4f);
+				DrawLine(P(0.5f, 0.08f), P(0.5f, 0.50f), c, g * 1.4f);
+				break;
+			}
+			case Clase.Altavoz:
+			{
+				DrawColoredPolygon(new[] { P(0.08f, 0.38f), P(0.26f, 0.38f), P(0.46f, 0.20f), P(0.46f, 0.80f), P(0.26f, 0.62f), P(0.08f, 0.62f) }, c);
+				DrawArc(P(0.46f, 0.5f), s.X * 0.20f, -0.75f, 0.75f, 10, c, g);
+				DrawArc(P(0.46f, 0.5f), s.X * 0.33f, -0.75f, 0.75f, 12, c, g);
+				break;
+			}
+			case Clase.Accesible:
+			{
+				DrawCircle(P(0.5f, 0.15f), s.X * 0.09f, c);
+				DrawLine(P(0.14f, 0.33f), P(0.86f, 0.33f), c, g * 1.3f);
+				DrawLine(P(0.5f, 0.33f), P(0.5f, 0.62f), c, g * 1.3f);
+				DrawLine(P(0.5f, 0.62f), P(0.30f, 0.92f), c, g * 1.3f);
+				DrawLine(P(0.5f, 0.62f), P(0.70f, 0.92f), c, g * 1.3f);
+				break;
+			}
+			case Clase.Persona:
+			{
+				DrawCircle(P(0.5f, 0.30f), s.X * 0.19f, c);
+				DrawColoredPolygon(new[] { P(0.12f, 0.92f), P(0.16f, 0.66f), P(0.34f, 0.56f), P(0.66f, 0.56f), P(0.84f, 0.66f), P(0.88f, 0.92f) }, c);
+				break;
+			}
+			case Clase.Camiseta:
+			{
+				DrawColoredPolygon(new[]
+				{
+					P(0.38f, 0.10f), P(0.50f, 0.20f), P(0.62f, 0.10f), P(0.88f, 0.24f), P(0.80f, 0.46f), P(0.70f, 0.40f),
+					P(0.70f, 0.90f), P(0.30f, 0.90f), P(0.30f, 0.40f), P(0.20f, 0.46f), P(0.12f, 0.24f)
+				}, c);
+				break;
+			}
+			case Clase.Info:
+			{
+				DrawArc(P(0.5f, 0.5f), s.X * 0.42f, 0, Mathf.Tau, 28, c, g * 0.9f);
+				DrawCircle(P(0.5f, 0.28f), s.X * 0.06f, c);
+				DrawLine(P(0.5f, 0.42f), P(0.5f, 0.74f), c, g * 1.1f);
+				break;
+			}
+			case Clase.GeneroM:
+			{
+				DrawArc(P(0.42f, 0.58f), s.X * 0.24f, 0, Mathf.Tau, 24, c, g * 1.2f);
+				DrawLine(P(0.59f, 0.41f), P(0.86f, 0.14f), c, g * 1.2f);
+				DrawLine(P(0.86f, 0.14f), P(0.64f, 0.14f), c, g * 1.2f);
+				DrawLine(P(0.86f, 0.14f), P(0.86f, 0.36f), c, g * 1.2f);
+				break;
+			}
+			case Clase.GeneroF:
+			{
+				DrawArc(P(0.5f, 0.34f), s.X * 0.24f, 0, Mathf.Tau, 24, c, g * 1.2f);
+				DrawLine(P(0.5f, 0.58f), P(0.5f, 0.90f), c, g * 1.2f);
+				DrawLine(P(0.34f, 0.76f), P(0.66f, 0.76f), c, g * 1.2f);
+				break;
+			}
+			case Clase.GeneroN:
+			{
+				DrawArc(P(0.5f, 0.46f), s.X * 0.20f, 0, Mathf.Tau, 24, c, g * 1.2f);
+				DrawLine(P(0.5f, 0.66f), P(0.5f, 0.92f), c, g * 1.2f);
+				DrawLine(P(0.37f, 0.80f), P(0.63f, 0.80f), c, g * 1.2f);
+				DrawLine(P(0.64f, 0.32f), P(0.86f, 0.10f), c, g * 1.2f);
+				DrawLine(P(0.86f, 0.10f), P(0.68f, 0.10f), c, g * 1.2f);
+				DrawLine(P(0.86f, 0.10f), P(0.86f, 0.28f), c, g * 1.2f);
+				break;
+			}
+			case Clase.Cabello:
+			{
+				DrawColoredPolygon(new[]
+				{
+					P(0.14f, 0.62f), P(0.14f, 0.40f), P(0.24f, 0.20f), P(0.40f, 0.10f), P(0.60f, 0.10f), P(0.76f, 0.20f),
+					P(0.86f, 0.40f), P(0.86f, 0.62f), P(0.72f, 0.54f), P(0.62f, 0.36f), P(0.38f, 0.36f), P(0.28f, 0.54f)
+				}, c);
+				break;
+			}
+			case Clase.Cara:
+			{
+				DrawArc(P(0.5f, 0.5f), s.X * 0.40f, 0, Mathf.Tau, 28, c, g * 1.1f);
+				DrawCircle(P(0.36f, 0.42f), s.X * 0.055f, c);
+				DrawCircle(P(0.64f, 0.42f), s.X * 0.055f, c);
+				DrawArc(P(0.5f, 0.52f), s.X * 0.20f, 0.35f, Mathf.Pi - 0.35f, 10, c, g);
+				break;
+			}
+			case Clase.SobreNeon:
+			{
+				DrawRect(R(0.08f, 0.22f, 0.84f, 0.58f), c, false, g);
+				DrawPolyline(new[] { P(0.10f, 0.26f), P(0.50f, 0.56f), P(0.90f, 0.26f) }, c, g);
+				break;
+			}
+			case Clase.Advertencia:
+			{
+				DrawPolyline(new[] { P(0.5f, 0.10f), P(0.94f, 0.88f), P(0.06f, 0.88f), P(0.5f, 0.10f) }, c, g * 1.3f);
+				DrawLine(P(0.5f, 0.38f), P(0.5f, 0.60f), c, g * 1.3f);
+				DrawCircle(P(0.5f, 0.72f), s.X * 0.045f, c);
+				break;
+			}
+			case Clase.FlechaIzq:
+			{
+				DrawPolyline(new[] { P(0.62f, 0.20f), P(0.30f, 0.50f), P(0.62f, 0.80f) }, c, g * 1.4f);
+				break;
+			}
+			case Clase.FlechaDer:
+			{
+				DrawPolyline(new[] { P(0.38f, 0.20f), P(0.70f, 0.50f), P(0.38f, 0.80f) }, c, g * 1.4f);
+				break;
+			}
+			case Clase.Lupa:
+			{
+				DrawArc(P(0.42f, 0.42f), s.X * 0.26f, 0, Mathf.Tau, 24, c, g * 1.2f);
+				DrawLine(P(0.61f, 0.61f), P(0.88f, 0.88f), c, g * 1.4f);
 				break;
 			}
 			case Clase.Cruz:

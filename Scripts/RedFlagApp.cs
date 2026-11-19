@@ -465,25 +465,10 @@ public partial class RedFlagApp : Control
 		Panel marco = new Panel { CustomMinimumSize = new Vector2(88, 80), SizeFlagsVertical = SizeFlags.ShrinkBegin };
 		marco.AddThemeStyleboxOverride("panel", RedFlagUI.Caja(new Color("0b2236"), CianOscuro, 1, 2));
 
-		const string ruta = "res://Interfaz/avatar_solicitud.png";
-		Texture2D tex = ResourceLoader.Exists(ruta) ? GD.Load<Texture2D>(ruta) : null;
-		if (tex != null)
-		{
-			TextureRect img = new TextureRect
-			{
-				Texture = tex,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-				TextureFilter = TextureFilterEnum.Nearest,
-				MouseFilter = MouseFilterEnum.Ignore
-			};
-			img.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, LayoutPresetMode.Minsize, 5);
-			marco.AddChild(img);
-		}
-		else
-		{
-			marco.AddChild(IconoSistema.Crear(IconoSistema.Clase.Personas, 40, Cian));
-		}
+		// Foto del jugador: su personaje personalizado
+		AvatarJugador foto = AvatarJugador.Crear(AvatarJugador.Modo.Busto, true);
+		marco.AddChild(foto);
+		foto.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, LayoutPresetMode.Minsize, 4);
 
 		// Esquinas rojas, como en el diseño
 		marco.Draw += () =>

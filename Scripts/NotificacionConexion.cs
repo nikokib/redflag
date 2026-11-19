@@ -112,6 +112,12 @@ public partial class NotificacionConexion : Control
 			ventana.AddChild(respaldo);
 		}
 
+		// --- Foto: el avatar que personalizó el jugador (tapa el dibujo de la imagen base) ---
+		AvatarJugador foto = AvatarJugador.Crear(AvatarJugador.Modo.Busto, true);
+		foto.Position = P(67f, 171f);
+		foto.Size = P(195f, 197f);
+		ventana.AddChild(foto);
+
 		Color valor = new Color("c9e3f2");
 		Color acento = new Color("22e0c4");
 

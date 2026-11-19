@@ -31,11 +31,11 @@ public static class AppsEscritorio
 	public static readonly AppDef[] Izquierda =
 	{
 		new AppDef("mipc", "Mi PC", "PC", "5aa9e6", 620, 400),
-		new AppDef("navegador", "Navegador", "WWW", "39b7cc", 640, 420),
+		new AppDef("navegador", "Navegador", "WWW", "39b7cc", 700, 460),
 		new AppDef("redflags", "Red Flags", "RF", "ff3b34", 660, 400),
 		new AppDef("incidentes", "Incidentes", "INC", "ffb347", 520, 340),
 		new AppDef("logs", "Logs", "LOG", "8ec07c", 580, 380),
-		new AppDef("correo", "Correo Interno", "@", "d6c7a1", 660, 380),
+		new AppDef("correo", "Correo Interno", "@", "d6c7a1", 720, 470),
 		new AppDef("chat", "Chat", "CH", "7ad7c1", 480, 380)
 	};
 
@@ -225,77 +225,380 @@ public static class AppsEscritorio
 	}
 
 	// ------------------------------------------------------------------
-	// Navegador (intranet SecureNet)
+	// Navegador (intranet SecureNet) - con buscador y secciones que funcionan
 	// ------------------------------------------------------------------
+
+	private class ArticuloIntranet
+	{
+		public string Id;
+		public string Seccion;   // noticias, documentos, recursos o soporte
+		public string Titulo;
+		public string Resumen;
+		public string Claves;    // palabras para el buscador
+		public string Cuerpo;
+	}
+
+	private static ArticuloIntranet Art(string id, string seccion, string titulo, string resumen, string claves, string cuerpo)
+	{
+		return new ArticuloIntranet { Id = id, Seccion = seccion, Titulo = titulo, Resumen = resumen, Claves = claves, Cuerpo = cuerpo };
+	}
+
+	private static readonly ArticuloIntranet[] ArticulosIntranet =
+	{
+		Art("virus", "documentos", "Qué hacer si detectás un virus",
+			"Pasos para frenar una conexión infectada.",
+			"virus infectado infeccion malware arreglar eliminar sacar remover solucionar amenaza",
+			"Un virus entra a la red cuando se acepta una conexión infectada.\n\n" +
+			"1. Antes de aceptar, revisá nombre, IP y MAC de la solicitud.\n" +
+			"2. Si algo no coincide, RECHAZÁ la conexión.\n" +
+			"3. Agregala a la blacklist para reconocerla la próxima vez.\n" +
+			"4. Si ya entró, mirá la sección Logs e Incidentes para ver qué pasó.\n" +
+			"5. Cuando llegue un correo del Antivirus, resolvelo rápido: analiza conexiones por vos.\n\n" +
+			"Recordá: aceptar una conexión infectada suma errores y puede terminar el turno."),
+		Art("reconocer", "documentos", "Cómo reconocer conexiones falsas",
+			"Qué mirar en el nombre, la IP y la MAC.",
+			"conexion falsa reconocer detectar pista ip mac nombre sospechoso infectada identificar revisar",
+			"Una conexión limpia siempre cumple estas reglas:\n\n" +
+			"NOMBRE: nombre y apellido normales, sin números ni símbolos. Ojo con letras cambiadas (por ejemplo una i por una l) y con usuarios de sistema como root_admin o guest_01.\n\n" +
+			"IP: debe empezar con 192.168 y los dos últimos números van de 0 a 255 (el último, de 1 a 254). Una IP como 172.x.x.x, 10.x.x.x o con un número mayor a 255 es sospechosa.\n\n" +
+			"MAC: seis pares de letras y números separados por \":\". Desconfiá de MAC como 00:00:00:... o DE:AD:BE:EF:...\n\n" +
+			"Área y rol: si dice \"Desconocido\", es una muy mala señal."),
+		Art("antivirus", "documentos", "Guía del Antivirus",
+			"Cómo se activa y qué hace por vos.",
+			"antivirus analisis escaneo proteccion codigo desbloqueo seguridad activar",
+			"El Antivirus se activa con un correo de emergencia.\n\n" +
+			"• Abrí el correo y resolvé la suma que aparece resaltada.\n" +
+			"• Si acertás, el antivirus revisa y resuelve conexiones correctamente por vos.\n" +
+			"• Si fallás, perdés puntos y se acorta el tiempo de la solicitud actual.\n\n" +
+			"Podés ver el último análisis en la app Antivirus del escritorio."),
+		Art("phishing", "documentos", "Protocolo contra el phishing",
+			"Cómo distinguir una alerta real de un engaño.",
+			"phishing correo falso engano estafa dominio enlace link reportar verificar sospechoso mail",
+			"El phishing es un correo falso que intenta que abras un enlace o entregues datos.\n\n" +
+			"1. Mirá el DOMINIO del remitente.\n" +
+			"2. Si es securenet.local (interno), la alerta puede ser real: elegí VERIFICAR EN IT.\n" +
+			"3. Si el dominio es externo (por ejemplo securenet-soporte.com) o apura con amenazas, es un engaño: elegí REPORTAR PHISHING.\n" +
+			"4. Nunca uses ABRIR ENLACE: es la opción peligrosa.\n\n" +
+			"El tiempo para decidir depende de la dificultad: cuanto más difícil, menos segundos tenés."),
+		Art("autorizacion", "documentos", "Autorización masiva: cómo cancelarla",
+			"Resolver la cuenta del correo urgente.",
+			"autorizacion masiva cuenta matematica calcular multiplicar restar orden operaciones correo urgente",
+			"Si llega un correo de autorización masiva, tenés que cancelar la orden resolviendo la cuenta.\n\n" +
+			"Se resuelve en orden: primero la MULTIPLICACIÓN y después la resta.\n" +
+			"Ejemplo: 6 x 7 - 5 = 42 - 5 = 37.\n\n" +
+			"Escribí el resultado y presioná RESPONDER. Si fallás o se acaba el tiempo, se autoaceptan solicitudes sin revisar."),
+		Art("calculadora", "documentos", "Usar la Calculadora con códigos",
+			"Cómo ingresar un código de recuperación.",
+			"calculadora codigo recuperar puntos numero igual limpiar teclas",
+			"Cuando el correo pida un código:\n\n" +
+			"1. Abrí la CALCULADORA del escritorio.\n" +
+			"2. Si hay otro número en pantalla, presioná C para limpiar.\n" +
+			"3. Ingresá el código resaltado en el correo.\n" +
+			"4. Presioná = para confirmar.\n\n" +
+			"Correcto: ganás puntos. Incorrecto o fuera de tiempo: perdés puntos."),
+		Art("firewall", "recursos", "Firewall: cómo funciona",
+			"Bloqueos automáticos contra conexiones infectadas.",
+			"firewall bloqueo proteccion cortafuegos red defensa bloquear",
+			"El firewall puede quedar protegido después de resolver bien una emergencia.\n\n" +
+			"Mientras tenga bloqueos disponibles, bloquea automáticamente conexiones infectadas. Ves cuántos te quedan en el aviso del escritorio y en la app Firewall."),
+		Art("listas", "recursos", "Whitelist y blacklist",
+			"Para qué sirven las listas de conexiones.",
+			"whitelist blacklist lista blanca negra confiables bloqueadas aprobar rechazar",
+			"WHITELIST: conexiones que ya revisaste y son confiables.\nBLACKLIST: conexiones infectadas que ya detectaste.\n\n" +
+			"Desde la app Red Flag podés agregar la solicitud actual a una de las dos. Te sirve para reconocerlas rápido si vuelven a aparecer."),
+		Art("guia", "recursos", "Guía de seguridad para empleados",
+			"Buenas prácticas del turno.",
+			"guia seguridad empleados buenas practicas turno consejos basico",
+			"• Revisá siempre nombre, IP y MAC antes de aceptar.\n• Ante la duda, rechazá.\n• Las solicitudes sin responder se aceptan solas: no te quedes mirando.\n• Atendé los correos de emergencia antes de que termine la cuenta regresiva.\n• No compartas credenciales ni abras enlaces externos."),
+		Art("actualizacion", "noticias", "Actualización de seguridad - 24/05",
+			"Se reforzaron las reglas de detección.",
+			"actualizacion seguridad parche novedad deteccion",
+			"Se actualizaron las reglas de detección de conexiones sospechosas. Ahora hay que prestar más atención a los detalles del nombre, la IP y la MAC."),
+		Art("reunion", "noticias", "Reunión general - 26/05",
+			"Se recuerda al personal la reunión en la sala principal.",
+			"reunion general sala principal personal recordatorio",
+			"Se recuerda al personal la reunión general en la sala principal. La asistencia es obligatoria para todo el turno."),
+		Art("noticia-firewall", "noticias", "Se reforzó el firewall perimetral",
+			"Mejoras en el bloqueo de intrusos.",
+			"firewall perimetral reforzado novedad intrusos",
+			"El equipo de redes reforzó el firewall perimetral. Cuando respondés bien una emergencia, el firewall puede bloquear conexiones infectadas por vos."),
+		Art("noticia-phishing", "noticias", "Aumentaron los intentos de phishing",
+			"Cuidado con los correos que apuran.",
+			"phishing aumento intentos correos falsos alerta",
+			"Esta semana aumentaron los correos falsos con amenazas y dominios externos. Revisá siempre el dominio del remitente y reportá lo sospechoso."),
+		Art("contrasenas", "soporte", "Nueva política de contraseñas",
+			"Mínimo de 12 caracteres.",
+			"contrasena password clave politica caracteres seguridad cambiar",
+			"Desde esta semana las contraseñas deben tener al menos 12 caracteres, con letras, números y símbolos. No las compartas ni las anotes en lugares visibles."),
+		Art("mesa", "soporte", "Mesa de ayuda interna",
+			"Contactos del equipo de soporte.",
+			"soporte ayuda mesa contacto telefono interno mail problema",
+			"Mesa de ayuda interna: int. 4400\nHorario: 24/7 durante tu turno\nCorreo: soporte@securenet.local\n\nSi dudás de un correo o de una conexión, consultá antes de actuar.")
+	};
+
+	private static readonly string[] PalabrasVacias =
+	{
+		"como", "que", "para", "por", "con", "los", "las", "una", "uno", "del", "mis", "hay", "esta", "este"
+	};
+
+	private static string Normalizar(string texto)
+	{
+		string s = (texto ?? "").ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+		System.Text.StringBuilder sb = new System.Text.StringBuilder();
+		foreach (char c in s)
+		{
+			if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+				sb.Append(c);
+		}
+		return sb.ToString();
+	}
+
+	private static System.Collections.Generic.List<ArticuloIntranet> BuscarArticulos(string consulta)
+	{
+		string[] palabras = Normalizar(consulta).Split(
+			new[] { ' ', ',', '.', '?', '¿', '!', '¡', ';', ':' }, StringSplitOptions.RemoveEmptyEntries);
+
+		System.Collections.Generic.List<ArticuloIntranet> articulos = new System.Collections.Generic.List<ArticuloIntranet>();
+		System.Collections.Generic.List<int> puntajes = new System.Collections.Generic.List<int>();
+
+		foreach (ArticuloIntranet a in ArticulosIntranet)
+		{
+			string titulo = Normalizar(a.Titulo);
+			string claves = Normalizar(a.Claves);
+			string texto = Normalizar(a.Resumen + " " + a.Cuerpo);
+			int puntos = 0;
+
+			foreach (string p in palabras)
+			{
+				if (p.Length < 3 || Array.IndexOf(PalabrasVacias, p) >= 0) continue;
+				if (titulo.Contains(p)) puntos += 5;
+				if (claves.Contains(p)) puntos += 4;
+				if (texto.Contains(p)) puntos += 1;
+			}
+
+			if (puntos <= 0) continue;
+
+			// Orden de mayor a menor puntaje
+			int lugar = 0;
+			while (lugar < puntajes.Count && puntajes[lugar] >= puntos) lugar++;
+			articulos.Insert(lugar, a);
+			puntajes.Insert(lugar, puntos);
+		}
+
+		return articulos;
+	}
+
+	private static ArticuloIntranet BuscarArticuloPorId(string id)
+	{
+		foreach (ArticuloIntranet a in ArticulosIntranet)
+			if (a.Id == id) return a;
+		return null;
+	}
+
+	private static Button BotonNavegador(IconoSistema.Clase icono)
+	{
+		Button b = new Button { CustomMinimumSize = new Vector2(36, 34), FocusMode = Control.FocusModeEnum.None };
+		RedFlagUI.EstilizarBoton(b, false);
+		IconoSistema i = IconoSistema.Crear(icono, 18, RedFlagUI.BordeVivo);
+		i.Position = new Vector2(9, 8);
+		i.Size = new Vector2(18, 18);
+		b.AddChild(i);
+		return b;
+	}
 
 	private static Control Navegador()
 	{
-		VBoxContainer raiz = Columna(8);
-		raiz.AddChild(Marco(Txt("https://intranet.securenet.local", 14, RedFlagUI.TextoApagado), 8));
+		System.Collections.Generic.List<string> historial = new System.Collections.Generic.List<string> { "inicio" };
+		int pos = 0;
 
-		HBoxContainer cuerpo = Fila(12);
+		VBoxContainer raiz = Columna(8);
+
+		// --- Barra: atrás, adelante, recargar, dirección y buscador ---
+		HBoxContainer barra = Fila(6);
+		Button atras = BotonNavegador(IconoSistema.Clase.FlechaIzq);
+		Button adelante = BotonNavegador(IconoSistema.Clase.FlechaDer);
+		Button recargar = BotonNavegador(IconoSistema.Clase.Reiniciar);
+		LineEdit url = new LineEdit { Editable = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(120, 0) };
+		EstilizarEntrada(url);
+		LineEdit busqueda = new LineEdit
+		{
+			PlaceholderText = "Buscar: virus, phishing, firewall...",
+			CustomMinimumSize = new Vector2(230, 0)
+		};
+		EstilizarEntrada(busqueda);
+		Button buscar = BotonNavegador(IconoSistema.Clase.Lupa);
+		barra.AddChild(atras);
+		barra.AddChild(adelante);
+		barra.AddChild(recargar);
+		barra.AddChild(url);
+		barra.AddChild(busqueda);
+		barra.AddChild(buscar);
+		raiz.AddChild(barra);
+
+		// --- Cuerpo: secciones a la izquierda, contenido a la derecha ---
+		HBoxContainer cuerpo = Fila(10);
 		cuerpo.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
 		raiz.AddChild(cuerpo);
 
-		VBoxContainer contenido = Columna(8);
-		Label titulo = Txt("SECURENET", 30, new Color("6fd3e8"));
-		Label subtitulo = Txt("INTRANET CORPORATIVA", 13, RedFlagUI.TextoApagado);
-		Label encabezado = Txt("", 16, RedFlagUI.Texto);
-		Label lineas = Txt("", 14, RedFlagUI.TextoApagado, true);
+		VBoxContainer menu = Columna(6);
+		menu.CustomMinimumSize = new Vector2(125, 0);
+		cuerpo.AddChild(menu);
+
+		VBoxContainer contenido = Columna(10);
+		contenido.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		ScrollContainer scroll = Desplazable(contenido);
+		PanelContainer marco = Marco(scroll, 10);
+		ExpandirTodo(marco);
+		cuerpo.AddChild(marco);
+
+		string[][] secciones =
+		{
+			new[] { "Inicio", "inicio" }, new[] { "Noticias", "noticias" }, new[] { "Documentos", "documentos" },
+			new[] { "Recursos", "recursos" }, new[] { "Soporte", "soporte" }
+		};
+		foreach (string[] s in secciones)
+		{
+			string destino = s[1];
+			Button b = RedFlagUI.CrearBoton(s[0], new Vector2(0, 38));
+			b.Alignment = HorizontalAlignment.Left;
+			b.Pressed += () => Ir(destino);
+			menu.AddChild(b);
+		}
+
+		void Ir(string pagina)
+		{
+			if (pos < historial.Count - 1) historial.RemoveRange(pos + 1, historial.Count - pos - 1);
+			historial.Add(pagina);
+			pos = historial.Count - 1;
+			Mostrar(pagina);
+		}
+
+		void Buscar(string texto)
+		{
+			string t = (texto ?? "").Trim();
+			if (t.Length == 0) return;
+			Ir("buscar:" + t);
+		}
+
+		Button Enlace(string texto, string destino)
+		{
+			Button b = new Button
+			{
+				Text = texto,
+				Flat = true,
+				Alignment = HorizontalAlignment.Left,
+				FocusMode = Control.FocusModeEnum.None,
+				MouseDefaultCursorShape = Control.CursorShape.PointingHand,
+				SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+			};
+			b.AddThemeFontOverride("font", RedFlagUI.Fuente);
+			b.AddThemeFontSizeOverride("font_size", 16);
+			b.AddThemeColorOverride("font_color", new Color("6fd3e8"));
+			b.AddThemeColorOverride("font_hover_color", Colors.White);
+			b.AddThemeColorOverride("font_pressed_color", Colors.White);
+			b.Pressed += () => Ir(destino);
+			return b;
+		}
+
+		void AgregarArticulo(ArticuloIntranet a)
+		{
+			contenido.AddChild(Enlace("> " + a.Titulo, "art:" + a.Id));
+			contenido.AddChild(Txt("    " + a.Resumen, 13, RedFlagUI.TextoApagado, true));
+		}
 
 		void Mostrar(string pagina)
 		{
-			switch (pagina)
+			foreach (Node n in contenido.GetChildren())
 			{
-				case "Noticias":
-					encabezado.Text = "NOTICIAS";
-					lineas.Text = "- Se reforzó el firewall perimetral\n- Aumentaron los intentos de phishing\n- Recordatorio: no compartir credenciales";
-					break;
-				case "Documentos":
-					encabezado.Text = "DOCUMENTOS";
-					lineas.Text = "- manual_reds.pdf\n- Política de accesos v3\n- Protocolo de incidentes";
-					break;
-				case "Recursos":
-					encabezado.Text = "RECURSOS";
-					lineas.Text = "- Guía de seguridad para empleados\n- Lista de áreas habilitadas\n- Alta de dispositivos";
-					break;
-				case "Soporte":
-					encabezado.Text = "SOPORTE";
-					lineas.Text = "Mesa de ayuda interna: int. 4400\nHorario: 24/7 durante tu turno\nCorreo: soporte@securenet.local";
-					break;
-				default:
-					encabezado.Text = "AVISOS IMPORTANTES";
-					lineas.Text = "- Actualización de seguridad - 24/05\n- Reunión general - 26/05\n- Nueva política de contraseñas";
-					break;
+				contenido.RemoveChild(n);
+				n.QueueFree();
+			}
+
+			atras.Disabled = pos <= 0;
+			adelante.Disabled = pos >= historial.Count - 1;
+			url.Text = "https://intranet.securenet.local/" + pagina.Replace(':', '/').Replace(' ', '-');
+
+			if (pagina == "inicio")
+			{
+				contenido.AddChild(Txt("SECURENET", 32, new Color("6fd3e8")));
+				contenido.AddChild(Txt("INTRANET CORPORATIVA", 13, RedFlagUI.TextoApagado));
+
+				VBoxContainer avisos = Columna(4);
+				avisos.AddChild(Txt("AVISOS IMPORTANTES", 17, RedFlagUI.Texto));
+				avisos.AddChild(Enlace("- Actualización de seguridad - 24/05", "art:actualizacion"));
+				avisos.AddChild(Enlace("- Reunión general - 26/05", "art:reunion"));
+				avisos.AddChild(Enlace("- Nueva política de contraseñas", "art:contrasenas"));
+				contenido.AddChild(Marco(avisos, 12));
+
+				VBoxContainer ayuda = Columna(4);
+				ayuda.AddChild(Txt("AYUDA RÁPIDA", 17, RedFlagUI.Acento));
+				ayuda.AddChild(Enlace("- ¿Qué hago si detecto un virus?", "art:virus"));
+				ayuda.AddChild(Enlace("- ¿Cómo reconozco una conexión falsa?", "art:reconocer"));
+				ayuda.AddChild(Enlace("- ¿Cómo detecto un correo de phishing?", "art:phishing"));
+				ayuda.AddChild(Enlace("- Cómo funciona el antivirus", "art:antivirus"));
+				contenido.AddChild(Marco(ayuda, 12));
+
+				contenido.AddChild(Txt("Tip: usá el buscador de arriba (por ejemplo \"virus\" o \"contraseña\").", 13, RedFlagUI.TextoApagado, true));
+			}
+			else if (pagina.StartsWith("art:"))
+			{
+				ArticuloIntranet a = BuscarArticuloPorId(pagina.Substring(4));
+				if (a == null)
+				{
+					contenido.AddChild(Txt("Página no encontrada.", 18, RedFlagUI.Rojo));
+				}
+				else
+				{
+					contenido.AddChild(Txt(a.Seccion.ToUpper(), 12, RedFlagUI.TextoApagado));
+					contenido.AddChild(Txt(a.Titulo, 22, new Color("6fd3e8"), true));
+					contenido.AddChild(Marco(Txt(a.Cuerpo, 15, RedFlagUI.Texto, true), 12));
+					contenido.AddChild(Enlace("< Volver al inicio", "inicio"));
+				}
+			}
+			else if (pagina.StartsWith("buscar:"))
+			{
+				string consulta = pagina.Substring(7);
+				System.Collections.Generic.List<ArticuloIntranet> resultados = BuscarArticulos(consulta);
+				contenido.AddChild(Txt("RESULTADOS PARA \"" + consulta + "\"", 17, RedFlagUI.Acento, true));
+				if (resultados.Count == 0)
+				{
+					contenido.AddChild(Txt("No se encontraron resultados.", 16, RedFlagUI.Texto));
+					contenido.AddChild(Txt("Probá con: virus, antivirus, phishing, firewall, contraseña, calculadora.", 13, RedFlagUI.TextoApagado, true));
+				}
+				else
+				{
+					contenido.AddChild(Txt(resultados.Count + " resultado(s)", 12, RedFlagUI.TextoApagado));
+					foreach (ArticuloIntranet a in resultados) AgregarArticulo(a);
+				}
+			}
+			else
+			{
+				string titulo = pagina == "noticias" ? "NOTICIAS" : pagina == "documentos" ? "DOCUMENTOS"
+					: pagina == "recursos" ? "RECURSOS" : "SOPORTE";
+				contenido.AddChild(Txt(titulo, 24, new Color("6fd3e8")));
+				foreach (ArticuloIntranet a in ArticulosIntranet)
+					if (a.Seccion == pagina) AgregarArticulo(a);
 			}
 		}
 
-		VBoxContainer menu = Columna(4);
-		menu.CustomMinimumSize = new Vector2(140, 0);
-		foreach (string pagina in new[] { "Inicio", "Noticias", "Documentos", "Recursos", "Soporte" })
+		atras.Pressed += () =>
 		{
-			Button b = new Button { Text = pagina, Alignment = HorizontalAlignment.Left, CustomMinimumSize = new Vector2(0, 34) };
-			RedFlagUI.EstilizarBoton(b, false);
-			b.Pressed += () => Mostrar(pagina);
-			menu.AddChild(b);
-		}
-		PanelContainer marcoMenu = Marco(menu, 8);
-		marcoMenu.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-		cuerpo.AddChild(marcoMenu);
+			if (pos <= 0) return;
+			pos--;
+			Mostrar(historial[pos]);
+		};
+		adelante.Pressed += () =>
+		{
+			if (pos >= historial.Count - 1) return;
+			pos++;
+			Mostrar(historial[pos]);
+		};
+		recargar.Pressed += () => Mostrar(historial[pos]);
+		buscar.Pressed += () => Buscar(busqueda.Text);
+		busqueda.TextSubmitted += (string texto) => Buscar(texto);
 
-		contenido.AddChild(titulo);
-		contenido.AddChild(subtitulo);
-		VBoxContainer avisos = Columna(10);
-		avisos.AddChild(encabezado);
-		avisos.AddChild(lineas);
-		PanelContainer marcoAvisos = Marco(avisos, 14);
-		marcoAvisos.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-		contenido.AddChild(marcoAvisos);
-		contenido.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-		cuerpo.AddChild(contenido);
-
-		Mostrar("Inicio");
-		return Margen(raiz, 10);
+		Mostrar("inicio");
+		return Margen(raiz, 8);
 	}
 
 	// ------------------------------------------------------------------
@@ -432,7 +735,7 @@ public static class AppsEscritorio
 	}
 
 	// ------------------------------------------------------------------
-	// Correo interno
+	// Correo interno (bandeja de entrada + lectura con la tarea resaltada)
 	// ------------------------------------------------------------------
 
 	private static Control Correo(DatosEscritorio d)
@@ -450,43 +753,76 @@ public static class AppsEscritorio
 				"Las solicitudes sin responder se aceptan automáticamente.\n\nAtendé los correos de emergencia antes de que termine su cuenta regresiva." }
 		};
 
+		Color naranja = new Color("ffb347");
+		Color amarillo = new Color("ffd166");
+		Color celeste = new Color("6fd3e8");
+
 		int seleccionado = 0; // -1 = correo urgente
-		HBoxContainer raiz = Fila(8);
+		HBoxContainer raiz = Fila(10);
 		raiz.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-		VBoxContainer bandeja = Columna(5);
-		bandeja.CustomMinimumSize = new Vector2(175, 0);
-		bandeja.AddChild(Txt("BANDEJA DE ENTRADA", 12, RedFlagUI.Acento));
-		Button urgente = RedFlagUI.CrearBoton("SIN EMERGENCIAS", new Vector2(0, 43));
-		urgente.ClipText = true;
-		urgente.AddThemeFontSizeOverride("font_size", 12);
+
+		// --- Bandeja de entrada ---
+		VBoxContainer bandeja = Columna(6);
+		bandeja.AddChild(Txt("BANDEJA DE ENTRADA", 14, RedFlagUI.Acento));
+
+		Button urgente = new Button
+		{
+			CustomMinimumSize = new Vector2(0, 50),
+			ClipText = true,
+			FocusMode = Control.FocusModeEnum.None,
+			MouseDefaultCursorShape = Control.CursorShape.PointingHand
+		};
+		urgente.AddThemeStyleboxOverride("normal", RedFlagUI.Caja(new Color("0b2a3a"), celeste, 2, 6, 6));
+		urgente.AddThemeStyleboxOverride("hover", RedFlagUI.Caja(new Color("0f3a50"), Colors.White, 2, 6, 6));
+		urgente.AddThemeStyleboxOverride("pressed", RedFlagUI.Caja(new Color("0f3a50"), Colors.White, 2, 6, 6));
+		urgente.AddThemeStyleboxOverride("disabled", RedFlagUI.Caja(new Color("06141d"), RedFlagUI.Borde, 1, 6, 6));
+		urgente.AddThemeStyleboxOverride("focus", RedFlagUI.Caja(new Color(0, 0, 0, 0), celeste, 2, 6, 6));
+		urgente.AddThemeFontOverride("font", RedFlagUI.Fuente);
+		urgente.AddThemeFontSizeOverride("font_size", 16);
+		urgente.AddThemeColorOverride("font_color", Colors.White);
+		urgente.AddThemeColorOverride("font_disabled_color", RedFlagUI.TextoApagado);
 		bandeja.AddChild(urgente);
 
-		VBoxContainer lista = Columna(4);
+		VBoxContainer lista = Columna(5);
 		ScrollContainer listaScroll = Desplazable(lista);
 		bandeja.AddChild(listaScroll);
 		PanelContainer panelBandeja = Marco(bandeja, 8);
-		panelBandeja.CustomMinimumSize = new Vector2(195, 0);
+		panelBandeja.CustomMinimumSize = new Vector2(215, 0);
 		panelBandeja.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
 		raiz.AddChild(panelBandeja);
 
-		VBoxContainer lectura = Columna(6);
+		// --- Lectura ---
+		VBoxContainer lectura = Columna(7);
 		lectura.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 		lectura.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
 		Label de = Txt("", 12, RedFlagUI.TextoApagado);
-		Label asunto = Txt("", 15, RedFlagUI.Acento, true);
+		Label asunto = Txt("", 17, RedFlagUI.Texto, true);
 		lectura.AddChild(de);
 		lectura.AddChild(asunto);
 
-		Label cuerpo = Txt("", 13, RedFlagUI.Texto, true);
+		// Recuadro con lo importante que tiene que hacer el jugador
+		VBoxContainer contenidoTarea = Columna(4);
+		Label etiquetaTarea = Txt("TU TAREA", 12, naranja);
+		Label textoTarea = Txt("", 28, amarillo, true, HorizontalAlignment.Center);
+		Label ayudaTarea = Txt("", 13, RedFlagUI.Texto, true, HorizontalAlignment.Center);
+		contenidoTarea.AddChild(etiquetaTarea);
+		contenidoTarea.AddChild(textoTarea);
+		contenidoTarea.AddChild(ayudaTarea);
+		PanelContainer cajaTarea = new PanelContainer();
+		cajaTarea.AddThemeStyleboxOverride("panel", RedFlagUI.Caja(new Color("1c1405"), naranja, 2, 6, 10));
+		cajaTarea.AddChild(contenidoTarea);
+		lectura.AddChild(cajaTarea);
+
+		Label cuerpo = Txt("", 13, RedFlagUI.TextoApagado, true);
 		cuerpo.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 		ScrollContainer scroll = Desplazable(cuerpo);
-		scroll.CustomMinimumSize = new Vector2(0, 95);
+		scroll.CustomMinimumSize = new Vector2(0, 70);
 		lectura.AddChild(scroll);
 
-		Label tiempo = Txt("", 13, RedFlagUI.Rojo);
+		Label tiempo = Txt("", 15, RedFlagUI.Rojo);
 		ProgressBar barra = CrearBarra(RedFlagUI.Rojo);
-		barra.CustomMinimumSize = new Vector2(0, 10);
-		Label resultado = Txt("", 12, RedFlagUI.TextoApagado, true);
+		barra.CustomMinimumSize = new Vector2(0, 14);
+		Label resultado = Txt("", 13, RedFlagUI.TextoApagado, true);
 		lectura.AddChild(tiempo);
 		lectura.AddChild(barra);
 		lectura.AddChild(resultado);
@@ -495,28 +831,29 @@ public static class AppsEscritorio
 		LineEdit entrada = new LineEdit
 		{
 			PlaceholderText = "Resultado numérico",
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			CustomMinimumSize = new Vector2(0, 38)
 		};
 		EstilizarEntrada(entrada);
-		Button enviar = RedFlagUI.CrearBoton("RESPONDER", new Vector2(105, 34), true);
-		enviar.AddThemeFontSizeOverride("font_size", 12);
+		Button enviar = RedFlagUI.CrearBoton("RESPONDER", new Vector2(120, 38), true);
+		enviar.AddThemeFontSizeOverride("font_size", 13);
 		respuestaNumero.AddChild(entrada);
 		respuestaNumero.AddChild(enviar);
 		lectura.AddChild(respuestaNumero);
 
-		HBoxContainer opciones = Fila(4);
-		Button abrirEnlace = RedFlagUI.CrearBoton("ABRIR ENLACE", new Vector2(0, 32));
-		Button reportar = RedFlagUI.CrearBoton("REPORTAR PHISHING", new Vector2(0, 32));
-		Button verificar = RedFlagUI.CrearBoton("VERIFICAR EN IT", new Vector2(0, 32), true);
+		HBoxContainer opciones = Fila(5);
+		Button abrirEnlace = RedFlagUI.CrearBoton("ABRIR ENLACE", new Vector2(0, 38));
+		Button reportar = RedFlagUI.CrearBoton("REPORTAR PHISHING", new Vector2(0, 38));
+		Button verificar = RedFlagUI.CrearBoton("VERIFICAR EN IT", new Vector2(0, 38), true);
 		foreach (Button b in new[] { abrirEnlace, reportar, verificar })
 		{
-			b.AddThemeFontSizeOverride("font_size", 10);
+			b.AddThemeFontSizeOverride("font_size", 11);
 			b.ClipText = true;
 			b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 			opciones.AddChild(b);
 		}
 		lectura.AddChild(opciones);
-		PanelContainer panelLectura = Marco(lectura, 9);
+		PanelContainer panelLectura = Marco(lectura, 10);
 		ExpandirTodo(panelLectura);
 		raiz.AddChild(panelLectura);
 
@@ -534,6 +871,37 @@ public static class AppsEscritorio
 		reportar.Pressed += () => Responder("REPORTAR");
 		verificar.Pressed += () => Responder("VERIFICAR");
 
+		// Busca en el texto del correo lo más importante para resaltarlo
+		bool BuscarTarea(CorreoEmergencia e, out string destacado, out string ayuda)
+		{
+			destacado = "";
+			ayuda = "";
+			string patron;
+			switch (e.Tipo)
+			{
+				case TipoCorreo.Matematica:
+					patron = @"\d+\s*x\s*\d+\s*-\s*\d+\s*=\s*\?";
+					ayuda = "Resolvé la cuenta y escribí el resultado.";
+					break;
+				case TipoCorreo.Antivirus:
+					patron = @"\d+\s*\+\s*\d+\s*=\s*\?";
+					ayuda = "Resolvé la suma y escribí el resultado.";
+					break;
+				case TipoCorreo.CodigoCalculadora:
+					patron = @"C[ÓO]DIGO:\s*\d+";
+					ayuda = "Abrí la CALCULADORA, ingresá el número y presioná =";
+					break;
+				default:
+					patron = @"Dominio del remitente:[^\n]*";
+					ayuda = "Fijate en el dominio del remitente y decidí qué hacer.";
+					break;
+			}
+			System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(e.Cuerpo ?? "", patron);
+			if (!m.Success) return false;
+			destacado = m.Value.Trim();
+			return true;
+		}
+
 		void ActualizarVista()
 		{
 			CorreoEmergencia e = d.CorreoActual;
@@ -546,6 +914,17 @@ public static class AppsEscritorio
 				de.Text = "DE: " + e.Remitente;
 				asunto.Text = e.Asunto;
 				cuerpo.Text = e.Cuerpo;
+
+				string destacado = "";
+				string ayuda = "";
+				bool hayTarea = e.Pendiente && BuscarTarea(e, out destacado, out ayuda);
+				cajaTarea.Visible = hayTarea;
+				if (hayTarea)
+				{
+					textoTarea.Text = destacado;
+					ayudaTarea.Text = ayuda;
+				}
+
 				tiempo.Text = e.Pendiente ? "TIEMPO: " + Math.Ceiling(e.TiempoRestante) + " SEGUNDOS" : "EVENTO FINALIZADO";
 				barra.Visible = e.Pendiente;
 				barra.Value = e.TiempoTotal > 0 ? 100 * e.TiempoRestante / e.TiempoTotal : 0;
@@ -561,6 +940,7 @@ public static class AppsEscritorio
 				de.Text = "DE: " + correos[i][0];
 				asunto.Text = correos[i][1];
 				cuerpo.Text = correos[i][2];
+				cajaTarea.Visible = false;
 				tiempo.Text = "";
 				barra.Visible = false;
 				resultado.Text = "";
@@ -573,10 +953,10 @@ public static class AppsEscritorio
 		foreach (int i in new[] { 0, 1, 2, 3 })
 		{
 			int indice = i;
-			Button b = RedFlagUI.CrearBoton(correos[i][1], new Vector2(0, 33));
+			Button b = RedFlagUI.CrearBoton(correos[i][1], new Vector2(0, 38));
 			b.ClipText = true;
 			b.Alignment = HorizontalAlignment.Left;
-			b.AddThemeFontSizeOverride("font_size", 11);
+			b.AddThemeFontSizeOverride("font_size", 12);
 			b.Pressed += () => { seleccionado = indice; ActualizarVista(); };
 			lista.AddChild(b);
 		}
@@ -592,7 +972,7 @@ public static class AppsEscritorio
 		raiz.TreeExiting += () => d.CorreoCambio -= AlCambiarCorreo;
 		if (d.CorreoActual != null) seleccionado = -1;
 		ActualizarVista();
-		return Margen(raiz, 7);
+		return Margen(raiz, 8);
 	}
 
 	// ------------------------------------------------------------------
@@ -759,6 +1139,19 @@ public static class AppsEscritorio
 			};
 			ExpandirTodo(celda);
 			celda.AddThemeStyleboxOverride("panel", RedFlagUI.Caja(new Color("02080c"), RedFlagUI.Borde, 1, 2));
+
+			string rutaImagen = $"res://Interfaz/camaras/cam_{i + 1:00}.png";
+			Texture2D imagen = ResourceLoader.Exists(rutaImagen) ? GD.Load<Texture2D>(rutaImagen) : null;
+
+			if (imagen != null)
+			{
+				// Foto de la oficina con efecto glitch (el texto de la cámara lo dibuja el propio control)
+				FeedCamara feed = new FeedCamara { Imagen = imagen, Titulo = nombres[i], SinSenal = sinSenal };
+				ExpandirTodo(feed);
+				celda.AddChild(feed);
+				grilla.AddChild(celda);
+				continue;
+			}
 
 			celda.AddChild(new RuidoGlitch
 			{
