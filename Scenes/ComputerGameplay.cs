@@ -141,6 +141,7 @@ public partial class ComputerGameplay : Control
 		avisoEmergencia = new AvisoEmergencia { AlAbrirCorreo = AbrirCorreoUrgente };
 		AddChild(avisoEmergencia);
 		datos.ResponderCorreo = ResponderCorreo;
+		datos.CodigoDesdeCalculadora = RevisarCodigoCalculadora;
 
 		AplicarConfig();
 		InicializarPantalla();
@@ -668,6 +669,7 @@ public partial class ComputerGameplay : Control
 			tiposSinUsar.Add(TipoCorreo.Matematica);
 			tiposSinUsar.Add(TipoCorreo.Antivirus);
 			tiposSinUsar.Add(TipoCorreo.Phishing);
+			tiposSinUsar.Add(TipoCorreo.CodigoCalculadora);
 		}
 		int indice = rnd.Next(tiposSinUsar.Count);
 		TipoCorreo tipo = tiposSinUsar[indice];
@@ -679,7 +681,11 @@ public partial class ComputerGameplay : Control
 	{
 		CorreoEmergencia correo = new CorreoEmergencia();
 		correo.Tipo = ElegirTipo();
-		correo.TiempoTotal = correo.Tipo == TipoCorreo.Phishing ? 8 : 10;
+		correo.TiempoTotal = 10;
+		if (correo.Tipo == TipoCorreo.Phishing)
+			correo.TiempoTotal = 8;
+		if (correo.Tipo == TipoCorreo.CodigoCalculadora)
+			correo.TiempoTotal = 12;
 		correo.TiempoRestante = correo.TiempoTotal;
 
 		switch (correo.Tipo)
@@ -717,6 +723,27 @@ public partial class ComputerGameplay : Control
 					: "TU CUENTA SE ELIMINARÁ EN SEGUNDOS.\nIngresá al enlace de restauración.\nDominio del remitente: securenet-soporte.com (externo).\n\nSi es phishing, elegí REPORTAR PHISHING.";
 				break;
 			}
+			case TipoCorreo.CodigoCalculadora:
+			{
+				int codigo;
+				if (rnd.Next(2) == 0)
+					codigo = rnd.Next(100, 1000);
+				else
+					codigo = rnd.Next(1000, 10000);
+				correo.RespuestaCorrecta = codigo;
+				correo.Remitente = "Seguridad IT <seguridad@securenet.local>";
+				correo.Asunto = "URGENTE: recuperar puntos del sistema";
+				correo.Cuerpo =
+					$"Se detectaron registros pendientes de validación.\n\n" +
+					$"Para recuperar los puntos, abrí la CALCULADORA.\n\n" +
+					$"CÓDIGO: {codigo}\n\n" +
+					$"Ingresá el número y presioná = para confirmar.\n" +
+					$"Si hay otro número en pantalla, primero presioná C.\n\n" +
+					$"Tenés 12 segundos.\n\n" +
+					$"CORRECTO: +30 puntos.\n" +
+					$"INCORRECTO O FUERA DE TIEMPO: -10 puntos.";
+				break;
+			}
 		}
 
 		datos.CorreoActual = correo;
@@ -726,7 +753,15 @@ public partial class ComputerGameplay : Control
 		ultimoMensaje = correo.Asunto;
 		tiempoAviso = 4;
 	}
-
+	private void RevisarCodigoCalculadora(string codigo)
+	{
+		CorreoEmergencia correo = datos.CorreoActual;
+		if (juegoTerminado || correo == null || !correo.Pendiente)
+			return;
+		if (correo.Tipo != TipoCorreo.CodigoCalculadora)
+			return;
+		ResponderCorreo(codigo);
+	}
 	private void ResponderCorreo(string respuesta)
 	{
 		CorreoEmergencia correo = datos.CorreoActual;
@@ -762,6 +797,10 @@ public partial class ComputerGameplay : Control
 					ultimoMensaje = "Antivirus activado: 5 solicitudes analizadas.";
 					AnalizarCincoSolicitudes();
 					break;
+				case TipoCorreo.CodigoCalculadora:
+					SumarPuntos(30);
+					ultimoMensaje = "Código validado correctamente. +30 puntos.";
+					break;
 				case TipoCorreo.Phishing:
 					SumarPuntos(20);
 					proteccionesPendientes += 3;
@@ -782,6 +821,10 @@ public partial class ComputerGameplay : Control
 					SumarPuntos(-15);
 					autoAceptar = Math.Min(autoAceptar, Math.Max(2, segundosAuto - 5));
 					ultimoMensaje = "Antivirus desactivado: -15 puntos y menos tiempo.";
+					break;
+				case TipoCorreo.CodigoCalculadora:
+					SumarPuntos(-10);
+					ultimoMensaje = "Código incorrecto o tiempo agotado. -10 puntos.";
 					break;
 				case TipoCorreo.Phishing:
 					if (vencido)

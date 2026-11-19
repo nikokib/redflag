@@ -65,13 +65,13 @@ public static class AppsEscritorio
 			case "redflags": return Dashboard(d);
 			case "incidentes": return Incidentes(d);
 			case "logs": return Logs(d);
-            case "correo": return Correo(d);
+			case "correo": return Correo(d);
 			case "chat": return Chat(d);
 			case "firewall": return Firewall(d);
 			case "antivirus": return Antivirus(d);
 			case "camaras": return Camaras();
 			case "notas": return Notas(d);
-			case "calculadora": return Calculadora();
+			case "calculadora": return Calculadora(d);
 			case "papelera": return Papelera();
 			default: return Margen(Txt("App no disponible"));
 		}
@@ -415,18 +415,18 @@ public static class AppsEscritorio
 		ExpandirTodo(marco);
 		raiz.AddChild(marco);
 
-        Suscribir(raiz, d, () =>
-        {
-            string conexiones = string.Join("\n", d.Historial
-                .OrderByDescending(r => r.Hora).Take(80)
-                .Select(r => $"[{r.Hora:HH:mm:ss}] {r.Decision,-12} {r.Nombre,-16} {r.IP}"));
-            string eventos = string.Join("\n", d.HistorialEmergencias
-                .AsEnumerable().Reverse().Take(30));
-            lista.Text = "EMERGENCIAS\n" +
-                (eventos.Length == 0 ? "Todavía no hay correos urgentes." : eventos) +
-                "\n\nCONEXIONES\n" +
-                (conexiones.Length == 0 ? "Sin actividad registrada todavía." : conexiones);
-        });
+		Suscribir(raiz, d, () =>
+		{
+			string conexiones = string.Join("\n", d.Historial
+				.OrderByDescending(r => r.Hora).Take(80)
+				.Select(r => $"[{r.Hora:HH:mm:ss}] {r.Decision,-12} {r.Nombre,-16} {r.IP}"));
+			string eventos = string.Join("\n", d.HistorialEmergencias
+				.AsEnumerable().Reverse().Take(30));
+			lista.Text = "EMERGENCIAS\n" +
+				(eventos.Length == 0 ? "Todavía no hay correos urgentes." : eventos) +
+				"\n\nCONEXIONES\n" +
+				(conexiones.Length == 0 ? "Sin actividad registrada todavía." : conexiones);
+		});
 
 		return Margen(raiz, 10);
 	}
@@ -435,163 +435,165 @@ public static class AppsEscritorio
 	// Correo interno
 	// ------------------------------------------------------------------
 
-    private static Control Correo(DatosEscritorio d)
-    {
-        // Los mensajes comunes siguen disponibles; arriba aparecen las urgencias.
-        string[][] correos =
-        {
-            new[] { "Seguridad IT", "Cómo reconocer conexiones falsas",
-                "Verificá las IP internas (192.168.x.x), los nombres de empleados y las direcciones MAC.\n\nAnte un mensaje sospechoso, evitá abrir enlaces externos." },
-            new[] { "Recursos Humanos", "Reunión general - 26/05",
-                "Se recuerda al personal la reunión general en la sala principal." },
-            new[] { "Soporte", "Nueva política de contraseñas",
-                "Desde esta semana las contraseñas deben tener al menos 12 caracteres." },
-            new[] { "Administración", "Turno de guardia",
-                "Las solicitudes sin responder se aceptan automáticamente.\n\nAtendé los correos de emergencia antes de que termine su cuenta regresiva." }
-        };
+	private static Control Correo(DatosEscritorio d)
+	{
+		// Los mensajes comunes siguen disponibles; arriba aparecen las urgencias.
+		string[][] correos =
+		{
+			new[] { "Seguridad IT", "Cómo reconocer conexiones falsas",
+				"Verificá las IP internas (192.168.x.x), los nombres de empleados y las direcciones MAC.\n\nAnte un mensaje sospechoso, evitá abrir enlaces externos." },
+			new[] { "Recursos Humanos", "Reunión general - 26/05",
+				"Se recuerda al personal la reunión general en la sala principal." },
+			new[] { "Soporte", "Nueva política de contraseñas",
+				"Desde esta semana las contraseñas deben tener al menos 12 caracteres." },
+			new[] { "Administración", "Turno de guardia",
+				"Las solicitudes sin responder se aceptan automáticamente.\n\nAtendé los correos de emergencia antes de que termine su cuenta regresiva." }
+		};
 
-        int seleccionado = 0; // -1 = correo urgente
-        HBoxContainer raiz = Fila(8);
-        raiz.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        VBoxContainer bandeja = Columna(5);
-        bandeja.CustomMinimumSize = new Vector2(175, 0);
-        bandeja.AddChild(Txt("BANDEJA DE ENTRADA", 12, RedFlagUI.Acento));
-        Button urgente = RedFlagUI.CrearBoton("SIN EMERGENCIAS", new Vector2(0, 43));
-        urgente.ClipText = true;
-        urgente.AddThemeFontSizeOverride("font_size", 12);
-        bandeja.AddChild(urgente);
+		int seleccionado = 0; // -1 = correo urgente
+		HBoxContainer raiz = Fila(8);
+		raiz.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+		VBoxContainer bandeja = Columna(5);
+		bandeja.CustomMinimumSize = new Vector2(175, 0);
+		bandeja.AddChild(Txt("BANDEJA DE ENTRADA", 12, RedFlagUI.Acento));
+		Button urgente = RedFlagUI.CrearBoton("SIN EMERGENCIAS", new Vector2(0, 43));
+		urgente.ClipText = true;
+		urgente.AddThemeFontSizeOverride("font_size", 12);
+		bandeja.AddChild(urgente);
 
-        VBoxContainer lista = Columna(4);
-        ScrollContainer listaScroll = Desplazable(lista);
-        bandeja.AddChild(listaScroll);
-        PanelContainer panelBandeja = Marco(bandeja, 8);
-        panelBandeja.CustomMinimumSize = new Vector2(195, 0);
-        panelBandeja.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        raiz.AddChild(panelBandeja);
+		VBoxContainer lista = Columna(4);
+		ScrollContainer listaScroll = Desplazable(lista);
+		bandeja.AddChild(listaScroll);
+		PanelContainer panelBandeja = Marco(bandeja, 8);
+		panelBandeja.CustomMinimumSize = new Vector2(195, 0);
+		panelBandeja.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+		raiz.AddChild(panelBandeja);
 
-        VBoxContainer lectura = Columna(6);
-        lectura.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        lectura.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        Label de = Txt("", 12, RedFlagUI.TextoApagado);
-        Label asunto = Txt("", 15, RedFlagUI.Acento, true);
-        lectura.AddChild(de);
-        lectura.AddChild(asunto);
+		VBoxContainer lectura = Columna(6);
+		lectura.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		lectura.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+		Label de = Txt("", 12, RedFlagUI.TextoApagado);
+		Label asunto = Txt("", 15, RedFlagUI.Acento, true);
+		lectura.AddChild(de);
+		lectura.AddChild(asunto);
 
-        Label cuerpo = Txt("", 13, RedFlagUI.Texto, true);
-        cuerpo.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        ScrollContainer scroll = Desplazable(cuerpo);
-        scroll.CustomMinimumSize = new Vector2(0, 95);
-        lectura.AddChild(scroll);
+		Label cuerpo = Txt("", 13, RedFlagUI.Texto, true);
+		cuerpo.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		ScrollContainer scroll = Desplazable(cuerpo);
+		scroll.CustomMinimumSize = new Vector2(0, 95);
+		lectura.AddChild(scroll);
 
-        Label tiempo = Txt("", 13, RedFlagUI.Rojo);
-        ProgressBar barra = CrearBarra(RedFlagUI.Rojo);
-        barra.CustomMinimumSize = new Vector2(0, 10);
-        Label resultado = Txt("", 12, RedFlagUI.TextoApagado, true);
-        lectura.AddChild(tiempo);
-        lectura.AddChild(barra);
-        lectura.AddChild(resultado);
+		Label tiempo = Txt("", 13, RedFlagUI.Rojo);
+		ProgressBar barra = CrearBarra(RedFlagUI.Rojo);
+		barra.CustomMinimumSize = new Vector2(0, 10);
+		Label resultado = Txt("", 12, RedFlagUI.TextoApagado, true);
+		lectura.AddChild(tiempo);
+		lectura.AddChild(barra);
+		lectura.AddChild(resultado);
 
-        HBoxContainer respuestaNumero = Fila(6);
-        LineEdit entrada = new LineEdit
-        {
-            PlaceholderText = "Resultado numérico",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        EstilizarEntrada(entrada);
-        Button enviar = RedFlagUI.CrearBoton("RESPONDER", new Vector2(105, 34), true);
-        enviar.AddThemeFontSizeOverride("font_size", 12);
-        respuestaNumero.AddChild(entrada);
-        respuestaNumero.AddChild(enviar);
-        lectura.AddChild(respuestaNumero);
+		HBoxContainer respuestaNumero = Fila(6);
+		LineEdit entrada = new LineEdit
+		{
+			PlaceholderText = "Resultado numérico",
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+		};
+		EstilizarEntrada(entrada);
+		Button enviar = RedFlagUI.CrearBoton("RESPONDER", new Vector2(105, 34), true);
+		enviar.AddThemeFontSizeOverride("font_size", 12);
+		respuestaNumero.AddChild(entrada);
+		respuestaNumero.AddChild(enviar);
+		lectura.AddChild(respuestaNumero);
 
-        HBoxContainer opciones = Fila(4);
-        Button abrirEnlace = RedFlagUI.CrearBoton("ABRIR ENLACE", new Vector2(0, 32));
-        Button reportar = RedFlagUI.CrearBoton("REPORTAR PHISHING", new Vector2(0, 32));
-        Button verificar = RedFlagUI.CrearBoton("VERIFICAR EN IT", new Vector2(0, 32), true);
-        foreach (Button b in new[] { abrirEnlace, reportar, verificar })
-        {
-            b.AddThemeFontSizeOverride("font_size", 10);
-            b.ClipText = true;
-            b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            opciones.AddChild(b);
-        }
-        lectura.AddChild(opciones);
-        PanelContainer panelLectura = Marco(lectura, 9);
-        ExpandirTodo(panelLectura);
-        raiz.AddChild(panelLectura);
+		HBoxContainer opciones = Fila(4);
+		Button abrirEnlace = RedFlagUI.CrearBoton("ABRIR ENLACE", new Vector2(0, 32));
+		Button reportar = RedFlagUI.CrearBoton("REPORTAR PHISHING", new Vector2(0, 32));
+		Button verificar = RedFlagUI.CrearBoton("VERIFICAR EN IT", new Vector2(0, 32), true);
+		foreach (Button b in new[] { abrirEnlace, reportar, verificar })
+		{
+			b.AddThemeFontSizeOverride("font_size", 10);
+			b.ClipText = true;
+			b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+			opciones.AddChild(b);
+		}
+		lectura.AddChild(opciones);
+		PanelContainer panelLectura = Marco(lectura, 9);
+		ExpandirTodo(panelLectura);
+		raiz.AddChild(panelLectura);
 
-        // Una única función devuelve la elección a ComputerGameplay.
-        void Responder(string valor)
-        {
-            if (d.CorreoActual == null || !d.CorreoActual.Pendiente) return;
-            d.ResponderCorreo?.Invoke(valor);
-            entrada.Text = "";
-            ActualizarVista();
-        }
-        enviar.Pressed += () => Responder(entrada.Text.Trim());
-        entrada.TextSubmitted += (string texto) => Responder(texto.Trim());
-        abrirEnlace.Pressed += () => Responder("ABRIR");
-        reportar.Pressed += () => Responder("REPORTAR");
-        verificar.Pressed += () => Responder("VERIFICAR");
+		// Una única función devuelve la elección a ComputerGameplay.
+		void Responder(string valor)
+		{
+			if (d.CorreoActual == null || !d.CorreoActual.Pendiente) return;
+			d.ResponderCorreo?.Invoke(valor);
+			entrada.Text = "";
+			ActualizarVista();
+		}
+		enviar.Pressed += () => Responder(entrada.Text.Trim());
+		entrada.TextSubmitted += (string texto) => Responder(texto.Trim());
+		abrirEnlace.Pressed += () => Responder("ABRIR");
+		reportar.Pressed += () => Responder("REPORTAR");
+		verificar.Pressed += () => Responder("VERIFICAR");
 
-        void ActualizarVista()
-        {
-            CorreoEmergencia e = d.CorreoActual;
-            urgente.Disabled = e == null;
-            urgente.Text = e == null ? "SIN EMERGENCIAS" :
-                (e.Pendiente ? "!! URGENTE - " + Math.Ceiling(e.TiempoRestante) + "s" : "ÚLTIMA EMERGENCIA");
-            bool esUrgente = seleccionado == -1 && e != null;
-            if (esUrgente)
-            {
-                de.Text = "DE: " + e.Remitente;
-                asunto.Text = e.Asunto;
-                cuerpo.Text = e.Cuerpo;
-                tiempo.Text = e.Pendiente ? "TIEMPO: " + Math.Ceiling(e.TiempoRestante) + " SEGUNDOS" : "EVENTO FINALIZADO";
-                barra.Visible = e.Pendiente;
-                barra.Value = e.TiempoTotal > 0 ? 100 * e.TiempoRestante / e.TiempoTotal : 0;
-                resultado.Text = e.Pendiente ? "Respondé antes de que termine el tiempo." : e.Resultado;
-                respuestaNumero.Visible = e.Pendiente && e.Tipo != TipoCorreo.Phishing;
-                opciones.Visible = e.Pendiente && e.Tipo == TipoCorreo.Phishing;
-            }
-            else
-            {
-                int i = Math.Max(0, seleccionado);
-                de.Text = "DE: " + correos[i][0];
-                asunto.Text = correos[i][1];
-                cuerpo.Text = correos[i][2];
-                tiempo.Text = "";
-                barra.Visible = false;
-                resultado.Text = "";
-                respuestaNumero.Visible = false;
-                opciones.Visible = false;
-            }
-        }
+		void ActualizarVista()
+		{
+			CorreoEmergencia e = d.CorreoActual;
+			urgente.Disabled = e == null;
+			urgente.Text = e == null ? "SIN EMERGENCIAS" :
+				(e.Pendiente ? "!! URGENTE - " + Math.Ceiling(e.TiempoRestante) + "s" : "ÚLTIMA EMERGENCIA");
+			bool esUrgente = seleccionado == -1 && e != null;
+			if (esUrgente)
+			{
+				de.Text = "DE: " + e.Remitente;
+				asunto.Text = e.Asunto;
+				cuerpo.Text = e.Cuerpo;
+				tiempo.Text = e.Pendiente ? "TIEMPO: " + Math.Ceiling(e.TiempoRestante) + " SEGUNDOS" : "EVENTO FINALIZADO";
+				barra.Visible = e.Pendiente;
+				barra.Value = e.TiempoTotal > 0 ? 100 * e.TiempoRestante / e.TiempoTotal : 0;
+				resultado.Text = e.Pendiente ? "Respondé antes de que termine el tiempo." : e.Resultado;
+				respuestaNumero.Visible = e.Pendiente &&
+					e.Tipo != TipoCorreo.Phishing &&
+					e.Tipo != TipoCorreo.CodigoCalculadora;
+				opciones.Visible = e.Pendiente && e.Tipo == TipoCorreo.Phishing;
+			}
+			else
+			{
+				int i = Math.Max(0, seleccionado);
+				de.Text = "DE: " + correos[i][0];
+				asunto.Text = correos[i][1];
+				cuerpo.Text = correos[i][2];
+				tiempo.Text = "";
+				barra.Visible = false;
+				resultado.Text = "";
+				respuestaNumero.Visible = false;
+				opciones.Visible = false;
+			}
+		}
 
-        // Los controles de lectura ya están creados antes de conectar estos botones.
-        foreach (int i in new[] { 0, 1, 2, 3 })
-        {
-            int indice = i;
-            Button b = RedFlagUI.CrearBoton(correos[i][1], new Vector2(0, 33));
-            b.ClipText = true;
-            b.Alignment = HorizontalAlignment.Left;
-            b.AddThemeFontSizeOverride("font_size", 11);
-            b.Pressed += () => { seleccionado = indice; ActualizarVista(); };
-            lista.AddChild(b);
-        }
+		// Los controles de lectura ya están creados antes de conectar estos botones.
+		foreach (int i in new[] { 0, 1, 2, 3 })
+		{
+			int indice = i;
+			Button b = RedFlagUI.CrearBoton(correos[i][1], new Vector2(0, 33));
+			b.ClipText = true;
+			b.Alignment = HorizontalAlignment.Left;
+			b.AddThemeFontSizeOverride("font_size", 11);
+			b.Pressed += () => { seleccionado = indice; ActualizarVista(); };
+			lista.AddChild(b);
+		}
 
-        urgente.Pressed += () => { seleccionado = -1; ActualizarVista(); };
-        void AlCambiarCorreo()
-        {
-            if (d.CorreoActual != null && d.CorreoActual.Pendiente && seleccionado != -1)
-                seleccionado = -1;
-            ActualizarVista();
-        }
-        d.CorreoCambio += AlCambiarCorreo;
-        raiz.TreeExiting += () => d.CorreoCambio -= AlCambiarCorreo;
-        if (d.CorreoActual != null) seleccionado = -1;
-        ActualizarVista();
-        return Margen(raiz, 7);
-    }
+		urgente.Pressed += () => { seleccionado = -1; ActualizarVista(); };
+		void AlCambiarCorreo()
+		{
+			if (d.CorreoActual != null && d.CorreoActual.Pendiente && seleccionado != -1)
+				seleccionado = -1;
+			ActualizarVista();
+		}
+		d.CorreoCambio += AlCambiarCorreo;
+		raiz.TreeExiting += () => d.CorreoCambio -= AlCambiarCorreo;
+		if (d.CorreoActual != null) seleccionado = -1;
+		ActualizarVista();
+		return Margen(raiz, 7);
+	}
 
 	// ------------------------------------------------------------------
 	// Chat
@@ -671,20 +673,20 @@ public static class AppsEscritorio
 		reglas.AddChild(Txt("Puerto 3389 (RDP)      BLOQUEADO", 14, new Color("ff6b63")));
 		raiz.AddChild(Marco(reglas, 14));
 
-        Label bloqueadas = Txt("", 14, RedFlagUI.TextoApagado);
-        Label escudo = Txt("", 13, RedFlagUI.Acento);
-        Label infeccion = Txt("", 13, RedFlagUI.Rojo);
-        raiz.AddChild(bloqueadas);
-        raiz.AddChild(escudo);
-        raiz.AddChild(infeccion);
+		Label bloqueadas = Txt("", 14, RedFlagUI.TextoApagado);
+		Label escudo = Txt("", 13, RedFlagUI.Acento);
+		Label infeccion = Txt("", 13, RedFlagUI.Rojo);
+		raiz.AddChild(bloqueadas);
+		raiz.AddChild(escudo);
+		raiz.AddChild(infeccion);
 
-        Suscribir(raiz, d, () =>
-        {
-            bloqueadas.Text = $"Amenazas bloqueadas en este turno: {d.AmenazasBloqueadas}";
-            escudo.Text = $"Protecciones extra activas: {d.ProteccionesFirewall}";
-            infeccion.Text = d.InversionBotones > 0
-                ? $"ALERTA: botones invertidos ({d.InversionBotones})" : "";
-        });
+		Suscribir(raiz, d, () =>
+		{
+			bloqueadas.Text = $"Amenazas bloqueadas en este turno: {d.AmenazasBloqueadas}";
+			escudo.Text = $"Protecciones extra activas: {d.ProteccionesFirewall}";
+			infeccion.Text = d.InversionBotones > 0
+				? $"ALERTA: botones invertidos ({d.InversionBotones})" : "";
+		});
 
 		return Margen(raiz, 12);
 	}
@@ -720,12 +722,12 @@ public static class AppsEscritorio
 			}));
 		};
 
-        Label escaneoEmergencia = Txt("", 12, RedFlagUI.Acento, true);
-        Suscribir(raiz, d, () => escaneoEmergencia.Text = d.EstadoAntivirus);
+		Label escaneoEmergencia = Txt("", 12, RedFlagUI.Acento, true);
+		Suscribir(raiz, d, () => escaneoEmergencia.Text = d.EstadoAntivirus);
 		raiz.AddChild(estado);
 		raiz.AddChild(barra);
 		raiz.AddChild(escanear);
-        raiz.AddChild(escaneoEmergencia);
+		raiz.AddChild(escaneoEmergencia);
 		return Margen(raiz, 16);
 	}
 
@@ -808,7 +810,7 @@ public static class AppsEscritorio
 	// Calculadora
 	// ------------------------------------------------------------------
 
-	private static Control Calculadora()
+	private static Control Calculadora(DatosEscritorio d)
 	{
 		string pantalla = "0";
 		double acumulado = 0;
@@ -868,6 +870,9 @@ public static class AppsEscritorio
 					operacion = null;
 					nuevaEntrada = true;
 				}
+
+				// Enviar el número al juego cuando se presiona =
+				d.CodigoDesdeCalculadora?.Invoke(pantalla);
 			}
 			else
 			{

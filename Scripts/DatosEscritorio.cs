@@ -59,24 +59,25 @@ public class ConfigRed
 /// <summary>Tipos de emergencias que pueden llegar al correo interno.</summary>
 public enum TipoCorreo
 {
-    Matematica,
-    Antivirus,
-    Phishing
+	Matematica,
+	Antivirus,
+	Phishing,
+	CodigoCalculadora
 }
 
 /// <summary>Una emergencia activa o finalizada. No es un correo real.</summary>
 public class CorreoEmergencia
 {
-    public TipoCorreo Tipo;
-    public string Remitente = "";
-    public string Asunto = "";
-    public string Cuerpo = "";
-    public string Resultado = "";
-    public int RespuestaCorrecta;
-    public bool AlertaReal;
-    public bool Pendiente = true;
-    public double TiempoRestante;
-    public double TiempoTotal;
+	public TipoCorreo Tipo;
+	public string Remitente = "";
+	public string Asunto = "";
+	public string Cuerpo = "";
+	public string Resultado = "";
+	public int RespuestaCorrecta;
+	public bool AlertaReal;
+	public bool Pendiente = true;
+	public double TiempoRestante;
+	public double TiempoTotal;
 }
 
 /// <summary>
@@ -105,19 +106,20 @@ public class DatosEscritorio
 	public int ErroresRechazar, MaxErroresRechazar;
 	public int AutoAceptadas, MaxAutoAceptadas;
 
-    // Emergencias: ComputerGameplay decide; las apps muestran y envían respuestas.
-    public CorreoEmergencia CorreoActual;
-    public Action<string> ResponderCorreo;
-    public string EstadoAntivirus = "Aún no hubo análisis de emergencia.";
-    public int ProteccionesFirewall;
-    public int InversionBotones;
-    public int EmergenciasCorrectas;
-    public int EmergenciasFallidas;
-    public readonly List<string> HistorialEmergencias = new List<string>();
-    public event Action CorreoCambio;
+	// Emergencias: ComputerGameplay decide; las apps muestran y envían respuestas.
+	public CorreoEmergencia CorreoActual;
+	public Action<string> ResponderCorreo;
+	public Action<string> CodigoDesdeCalculadora;
+	public string EstadoAntivirus = "Aún no hubo análisis de emergencia.";
+	public int ProteccionesFirewall;
+	public int InversionBotones;
+	public int EmergenciasCorrectas;
+	public int EmergenciasFallidas;
+	public readonly List<string> HistorialEmergencias = new List<string>();
+	public event Action CorreoCambio;
 
-    public void AvisarCorreo() => CorreoCambio?.Invoke();
-    public void AvisarCambio() => Cambio?.Invoke();
+	public void AvisarCorreo() => CorreoCambio?.Invoke();
+	public void AvisarCambio() => Cambio?.Invoke();
 
 	/// <summary>Se dispara cada vez que se agrega un registro.</summary>
 	public event Action Cambio;
