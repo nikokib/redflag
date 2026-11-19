@@ -98,11 +98,26 @@ public partial class MenuPrincipal : Node2D
 		multiplayerPanel.Visible = true;
 	}
 
+	private SettingsMenu menuOpcionesNuevo;
+
 	private void OpenSettings()
 	{
-		panel.Visible = true;
-		optionsImage.Visible = true;
+		// La ventana nueva se abre encima del menú, sin cortar la música.
+		if (menuOpcionesNuevo != null && GodotObject.IsInstanceValid(menuOpcionesNuevo)) return;
 
+		PackedScene escena = GD.Load<PackedScene>("res://Scenes/SettingsMenu.tscn");
+		menuOpcionesNuevo = escena.Instantiate<SettingsMenu>();
+		Control contenedor = GetNode<Control>("Control");
+		contenedor.AddChild(menuOpcionesNuevo);
+		menuOpcionesNuevo.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		menuOpcionesNuevo.CerrarSolicitado += CerrarOpcionesNuevas;
+	}
+
+	private void CerrarOpcionesNuevas()
+	{
+		if (menuOpcionesNuevo == null) return;
+		menuOpcionesNuevo.QueueFree();
+		menuOpcionesNuevo = null;
 	}
 
 	private void ExitSettings()
