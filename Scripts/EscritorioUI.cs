@@ -70,10 +70,8 @@ public partial class EscritorioUI : Control
 	{
 		{ "mipc",      new SkinVentana { Ruta = "res://Interfaz/ventana_mipc.png",      Tam = new Vector2(477, 371), MinX = 0.836f, CerrarX = 0.950f,
 			Icono = IconoSistema.Clase.Pc, Reemplazar = false, AltoBarra = 52f } },
-		{ "navegador", new SkinVentana { Ruta = "res://Interfaz/ventana_navegador.png", Tam = new Vector2(487, 375), MinX = 0.832f, CerrarX = 0.947f,
-			Icono = IconoSistema.Clase.Navegador, Reemplazar = false, AltoBarra = 46f } },
-		{ "correo",    new SkinVentana { Ruta = "res://Interfaz/ventana_correo.png",    Tam = new Vector2(510, 387), MinX = 0.849f, CerrarX = 0.956f,
-			Icono = IconoSistema.Clase.Correo, Reemplazar = false, AltoBarra = 40f } }
+        // Correo usa una ventana interactiva. La antigua imagen se conserva en Interfaz/.
+        // Las otras ventanas con imagen no se modifican.
 	};
 
 	private class VentanaAbierta
@@ -82,6 +80,10 @@ public partial class EscritorioUI : Control
 		public Button BotonTarea;
 	}
 
+	/// <summary>Se avisa cuando el JUGADOR abre una app (no cuando el juego la abre solo).</summary>
+	public Action<string> AlAbrirAppUsuario;
+
+	private MenuInicio menuInicio;
 	private Control capaVentanas;
 	private HBoxContainer barraTareas;
 	private readonly Dictionary<string, VentanaAbierta> abiertas = new Dictionary<string, VentanaAbierta>();
@@ -126,7 +128,7 @@ public partial class EscritorioUI : Control
 			if (!ZonasIconos.TryGetValue(app.Id, out Rect2 r)) continue;
 			string id = app.Id;
 			Button b = CrearZonaFraccion(r, app.Titulo);
-			b.Pressed += () => AbrirApp(id);
+			b.Pressed += () => { AlAbrirAppUsuario?.Invoke(id); AbrirApp(id); };
 			capaIconos.AddChild(b);
 		}
 
@@ -223,8 +225,16 @@ public partial class EscritorioUI : Control
 
 	private void CrearBarraTareas(List<AppsEscritorio.AppDef> todas)
 	{
-		// "Inicio": zona sobre el ícono de Windows de la imagen, abre la lista de apps
-		MenuButton inicio = new MenuButton
+		// "Inicio": zona sobre el ícono de Windows de la imagen, abre el menú de inicio
+		menuInicio = new MenuInicio
+		{
+			AlElegirApp = id => { AlAbrirAppUsuario?.Invoke(id); AbrirApp(id); },
+			AlApagar = () => PantallaEnergia.Apagar(this),
+			AlReiniciar = () => PantallaEnergia.Reiniciar(this)
+		};
+		AddChild(menuInicio);
+
+		Button inicio = new Button
 		{
 			Flat = true,
 			FocusMode = FocusModeEnum.None,
@@ -239,17 +249,7 @@ public partial class EscritorioUI : Control
 		inicio.AddThemeStyleboxOverride("focus", vacio);
 		inicio.AddThemeStyleboxOverride("hover", RedFlagUI.Caja(new Color(0.22f, 0.72f, 0.8f, 0.14f), RedFlagUI.BordeVivo, 1, 4));
 		inicio.AddThemeStyleboxOverride("pressed", RedFlagUI.Caja(new Color(0.22f, 0.72f, 0.8f, 0.30f), RedFlagUI.BordeVivo, 1, 4));
-
-		PopupMenu menu = inicio.GetPopup();
-		menu.AddThemeStyleboxOverride("panel", RedFlagUI.Caja(RedFlagUI.FondoVentana, RedFlagUI.BordeVivo, 1, 2, 4));
-		menu.AddThemeStyleboxOverride("hover", RedFlagUI.Caja(new Color("0a3445"), RedFlagUI.BordeVivo, 1, 2));
-		menu.AddThemeFontOverride("font", RedFlagUI.Fuente);
-		menu.AddThemeFontSizeOverride("font_size", 15);
-		menu.AddThemeColorOverride("font_color", RedFlagUI.Texto);
-		menu.AddThemeColorOverride("font_hover_color", Colors.White);
-		for (int i = 0; i < todas.Count; i++)
-			menu.AddItem(todas[i].Titulo, i);
-		menu.IdPressed += (long id) => AbrirApp(todas[(int)id].Id);
+		inicio.Pressed += () => menuInicio.Alternar();
 		AddChild(inicio);
 
 		// Botones de las apps abiertas (a la derecha de "Inicio", sobre la barra de la imagen)
@@ -414,6 +414,29 @@ public partial class EscritorioUI : Control
 			}
 		};
 
+		bool maximizada = false;
+		Vector2 posAntes = Vector2.Zero;
+		Vector2 tamAntes = Vector2.Zero;
+		Action alMaximizar = () =>
+		{
+			if (!maximizada)
+			{
+				posAntes = ventana.Position;
+				tamAntes = ventana.Size;
+				maximizada = true;
+				Vector2 area = capaVentanas.Size;
+				ventana.Position = new Vector2(4f, 4f);
+				ventana.Size = new Vector2(area.X - 8f, area.Y * 0.93f - 8f);
+			}
+			else
+			{
+				maximizada = false;
+				ventana.Size = tamAntes;
+				ventana.Position = posAntes;
+			}
+			TraerAlFrente(ventana);
+		};
+
 		if (Skins.TryGetValue(id, out SkinVentana skin))
 		{
 			// La ventana es la imagen del diseño (contenido tal cual el diseño)
@@ -431,7 +454,8 @@ public partial class EscritorioUI : Control
 				() => CerrarApp(id),
 				alEventoBarra,
 				IconoSistema.Crear(IconoSistema.DeApp(id), 20, app.Color),
-				false);
+				false,
+				alMaximizar);
 
 			contenido.AddChild(AppsEscritorio.Crear(id, Datos));
 		}

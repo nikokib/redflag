@@ -52,6 +52,33 @@ public partial class ComputerGameplay : Control
 	private int virusRechazados = 0;   // decisiones correctas (solo para el resumen final)
 	private int validasAceptadas = 0;
 
+	// Los tres eventos especiales son exclusivos del modo single player.
+	private AvisoEmergencia avisoEmergencia;
+
+	// Ventana "EMERGENCIA": sale cuando el jugador acumuló errores Y está a punto de perder (solo interfaz)
+	private const int ERRORES_MINIMOS_ALERTA = 3;  // errores totales para que pueda salir
+	private const int MARGEN_PARA_PERDER = 1;      // le falta esta cantidad de errores (o menos) para perder
+	private const int BUENAS_PARA_RECUPERAR = 3;   // decisiones correctas para que desaparezca...
+	private const int TAREAS_PARA_RECUPERAR = 1;   // ...más esta cantidad de correos urgentes resueltos a tiempo
+	private const double ENFRIAMIENTO_REINICIO = 20; // segundos sin alerta tras elegir "Reiniciar equipo"
+	private AlertaEmergencia alertaSistema;
+	private bool alertaActiva = false;
+	private bool alertaCerrada = false;
+	private double alertaEnfriamiento = 0;
+	private int ultimosErrores = 0;
+	private int ultimasBuenas = 0;
+	private int ultimasTareas = 0;
+	private int rachaBuenas = 0;
+	private int rachaTareas = 0;
+	private double proximoCorreo = 10;
+	private double tiempoAviso = 0;
+	private string ultimoMensaje = "";
+	private int inversionesPendientes = 0;
+	private int proteccionesPendientes = 0;
+	private int correctosCorreo = 0;
+	private int fallidosCorreo = 0;
+	private readonly List<TipoCorreo> tiposSinUsar = new List<TipoCorreo>();
+
 	private bool juegoTerminado = false;
 
 	// Capa roja que avisa de impostores aceptados (solo visual)
@@ -126,6 +153,29 @@ public partial class ComputerGameplay : Control
 		alertaRoja = new AlertaRoja();
 		AddChild(alertaRoja);
 
+		// Un botón en el aviso abre la bandeja interactiva del escritorio.
+		avisoEmergencia = new AvisoEmergencia { AlAbrirCorreo = () => { AbrirCorreoUrgente(); avisoEmergencia.OcultarPendiente(); } };
+		AddChild(avisoEmergencia);
+		// Si el jugador abre el correo desde el escritorio, el aviso de emergencia desaparece
+		escritorio.AlAbrirAppUsuario = (string appId) => { if (appId == "correo") avisoEmergencia.OcultarPendiente(); };
+		alertaSistema = new AlertaEmergencia
+		{
+			AlApagar = () => PantallaEnergia.Apagar(this),
+			AlReiniciar = () =>
+			{
+				// Reiniciar retira la alerta un rato; vuelve a salir si el peligro sigue
+				alertaActiva = false;
+				alertaEnfriamiento = ENFRIAMIENTO_REINICIO;
+				rachaBuenas = 0;
+				rachaTareas = 0;
+				PantallaEnergia.Reiniciar(this);
+			},
+			AlCerrarManual = () => alertaCerrada = true
+		};
+		AddChild(alertaSistema);
+		datos.ResponderCorreo = ResponderCorreo;
+		datos.CodigoDesdeCalculadora = RevisarCodigoCalculadora;
+
 		AplicarConfig();
 		InicializarPantalla();
 	}
@@ -150,7 +200,78 @@ public partial class ComputerGameplay : Control
 		ActualizarHora();
 		ActualizarTiempoPartida(delta);
 		ActualizarAutoAceptar(delta);
+		ActualizarCorreos(delta);
+		ActualizarAlertaSistema(delta);
 		SincronizarDatos();
+	}
+
+	// ------------------------------------------------------------------
+	// ALERTA "EMERGENCIA": el jugador cometió varios errores y está a punto de perder.
+	// Solo muestra una ventana: no cambia puntos ni reglas.
+	//  - Se puede cerrar sin elegir (reaparece si comete otro error).
+	//  - Desaparece si se recupera: decisiones correctas + un correo urgente resuelto a tiempo.
+	// ------------------------------------------------------------------
+	private int TotalErrores => erroresAceptar + erroresRechazar + autoAceptadas + fallidosCorreo;
+
+	// Cuántos errores más puede cometer antes de perder (el contador más cercano al límite)
+	private int MargenParaPerder()
+	{
+		int m = maxErroresAceptar - erroresAceptar;
+		m = Math.Min(m, maxErroresRechazar - erroresRechazar);
+		m = Math.Min(m, maxAutoAceptadas - autoAceptadas);
+		return m;
+	}
+
+	private void ActualizarAlertaSistema(double delta)
+	{
+		if (juegoTerminado)
+		{
+			alertaSistema.Ocultar();
+			return;
+		}
+
+		if (alertaEnfriamiento > 0) alertaEnfriamiento -= delta;
+
+		int errores = TotalErrores;
+		int buenas = validasAceptadas + virusRechazados;
+		int tareas = correctosCorreo;
+
+		if (errores > ultimosErrores)
+		{
+			// Un error nuevo: se corta la racha de recuperación y la ventana puede volver a salir
+			rachaBuenas = 0;
+			rachaTareas = 0;
+			alertaCerrada = false;
+		}
+		else
+		{
+			if (buenas > ultimasBuenas) rachaBuenas += buenas - ultimasBuenas;
+			if (tareas > ultimasTareas) rachaTareas += tareas - ultimasTareas;
+		}
+		ultimosErrores = errores;
+		ultimasBuenas = buenas;
+		ultimasTareas = tareas;
+
+		bool enPeligro = errores >= ERRORES_MINIMOS_ALERTA && MargenParaPerder() <= MARGEN_PARA_PERDER;
+
+		if (!alertaActiva && enPeligro && alertaEnfriamiento <= 0)
+		{
+			alertaActiva = true;
+			alertaCerrada = false;
+			rachaBuenas = 0;
+			rachaTareas = 0;
+		}
+
+		if (alertaActiva && rachaBuenas >= BUENAS_PARA_RECUPERAR && rachaTareas >= TAREAS_PARA_RECUPERAR)
+		{
+			// El jugador se recuperó antes de perder: la alerta se retira
+			alertaActiva = false;
+			alertaSistema.Ocultar();
+			return;
+		}
+
+		if (alertaActiva && !alertaCerrada && !alertaSistema.EstaVisible)
+			alertaSistema.Mostrar();
 	}
 
 	// Copia el estado de la partida para que la ventana Red Flag lo muestre
@@ -162,6 +283,10 @@ public partial class ComputerGameplay : Control
 		datos.ErroresRechazar = erroresRechazar;
 		datos.AutoAceptadas = autoAceptadas;
 		datos.AutoAceptarRestante = Math.Max(0, autoAceptar);
+		datos.InversionBotones = inversionesPendientes;
+		datos.ProteccionesFirewall = proteccionesPendientes;
+		datos.EmergenciasCorrectas = correctosCorreo;
+		datos.EmergenciasFallidas = fallidosCorreo;
 	}
 
 	private void AbrirRedFlag()
@@ -273,24 +398,42 @@ public partial class ComputerGameplay : Control
 
 	private void GenerarSolicitud()
 	{
-		conexionActual = new Conexion();
+		CrearConexionAleatoria();
+		// El firewall protege contra las próximas 3 conexiones infectadas.
+		for (int intento = 0; intento < 100; intento++)
+		{
+			if (!conexionActual.Infectada || proteccionesPendientes <= 0)
+				break;
 
-		conexionActual.Infectada = rnd.NextDouble() < probInfectada;
-
-		// Datos de una conexión limpia (siempre válidos)
-		conexionActual.Nombre = nombres[rnd.Next(nombres.Length)];
-		conexionActual.IP = GenerarIP();
-		conexionActual.MAC = GenerarMAC();
-		conexionActual.Departamento = departamentos[rnd.Next(departamentos.Length)];
-		conexionActual.Rol = roles[rnd.Next(roles.Length)];
-
-		// Un virus se "delata" según la dificultad
-		if (conexionActual.Infectada)
-			AplicarPistasDeVirus();
-
+			proteccionesPendientes--;
+			RegistrarDecision("RECHAZADA");
+			SumarPuntos(20);
+			virusRechazados++;
+			AgregarConexion();
+			datos.HistorialEmergencias.Add("Firewall: amenaza bloqueada automáticamente.");
+			CrearConexionAleatoria();
+		}
 		MostrarConexion();
 		AgregarConexion();
+		SincronizarDatos();
+		datos.AvisarCambio();
 	}
+
+	// Construye una conexión, sin mostrarla, para el antivirus y el firewall.
+	private Conexion CrearConexionAleatoria()
+	{
+		Conexion nueva = new Conexion();
+		nueva.Infectada = rnd.NextDouble() < probInfectada;
+		nueva.Nombre = nombres[rnd.Next(nombres.Length)];
+		nueva.IP = GenerarIP();
+		nueva.MAC = GenerarMAC();
+		nueva.Departamento = departamentos[rnd.Next(departamentos.Length)];
+		nueva.Rol = roles[rnd.Next(roles.Length)];
+		conexionActual = nueva;
+		if (nueva.Infectada) AplicarPistasDeVirus();
+		return nueva;
+	}
+
 
 	// ------------------------------------------------------------------
 	// Pistas de un virus. Las conexiones limpias nunca las tienen:
@@ -540,7 +683,15 @@ public partial class ComputerGameplay : Control
 		if (juegoTerminado)
 			return;
 
-		Aceptar();
+		// Durante el phishing, un fallo puede invertir las próximas 3 decisiones.
+		if (inversionesPendientes > 0)
+		{
+			inversionesPendientes--;
+			Rechazar();
+			if (inversionesPendientes == 0)
+				alertaRoja.Pulso(erroresAceptar / (float)maxErroresAceptar);
+		}
+		else Aceptar();
 
 		if (juegoTerminado)
 			return;
@@ -554,12 +705,292 @@ public partial class ComputerGameplay : Control
 		if (juegoTerminado)
 			return;
 
-		Rechazar();
+		if (inversionesPendientes > 0)
+		{
+			inversionesPendientes--;
+			Aceptar();
+			if (inversionesPendientes == 0)
+				alertaRoja.Pulso(erroresAceptar / (float)maxErroresAceptar);
+		}
+		else Rechazar();
 
 		if (juegoTerminado)
 			return;
 
 		GenerarSolicitud();
+		autoAceptar = segundosAuto;
+	}
+
+	// ------------------------------------------------------------------
+	// CORREOS DE EMERGENCIA - SOLO SINGLE PLAYER
+	// ------------------------------------------------------------------
+
+	private void AbrirCorreoUrgente()
+	{
+		// Red Flag OS se dibuja por encima del escritorio: hay que ocultarlo
+		// para que la ventana de correo no quede detrás de él.
+		if (redFlagApp.EstaAbierta)
+		{
+			redFlagApp.Cerrar();
+			notif.AppAbierta(false);
+		}
+		escritorio.AbrirApp("correo");
+	}
+
+	private void ActualizarCorreos(double delta)
+	{
+		if (juegoTerminado) return;
+		if (tiempoAviso > 0) tiempoAviso -= delta;
+
+		CorreoEmergencia correo = datos.CorreoActual;
+		if (correo != null && correo.Pendiente)
+		{
+			int antes = (int)Math.Ceiling(correo.TiempoRestante);
+			correo.TiempoRestante = Math.Max(0, correo.TiempoRestante - delta);
+			if (correo.TiempoRestante == 0)
+				FinalizarCorreo(false, true);
+			else if ((int)Math.Ceiling(correo.TiempoRestante) != antes)
+				datos.AvisarCorreo();
+		}
+		else
+		{
+			proximoCorreo -= delta;
+			if (proximoCorreo <= 0)
+				CrearCorreo();
+		}
+
+		if (!juegoTerminado)
+			avisoEmergencia.Actualizar(datos.CorreoActual, inversionesPendientes,
+				proteccionesPendientes, tiempoAviso, ultimoMensaje);
+	}
+
+	// Todos los tipos aparecen una vez por ronda, en orden aleatorio.
+	private TipoCorreo ElegirTipo()
+	{
+		if (tiposSinUsar.Count == 0)
+		{
+			tiposSinUsar.Add(TipoCorreo.Matematica);
+			tiposSinUsar.Add(TipoCorreo.Antivirus);
+			tiposSinUsar.Add(TipoCorreo.Phishing);
+			tiposSinUsar.Add(TipoCorreo.CodigoCalculadora);
+		}
+		int indice = rnd.Next(tiposSinUsar.Count);
+		TipoCorreo tipo = tiposSinUsar[indice];
+		tiposSinUsar.RemoveAt(indice);
+		return tipo;
+	}
+
+	private void CrearCorreo()
+	{
+		CorreoEmergencia correo = new CorreoEmergencia();
+		correo.Tipo = ElegirTipo();
+		// Tiempo para completar la tarea del correo según la dificultad elegida
+		switch (PartidaConfig.Nivel)
+		{
+			case Dificultad.Facil: correo.TiempoTotal = 15; break;
+			case Dificultad.Normal: correo.TiempoTotal = 10; break;
+			default: correo.TiempoTotal = 7; break;
+		}
+		int segundosCorreo = (int)correo.TiempoTotal;
+		correo.TiempoRestante = correo.TiempoTotal;
+
+		switch (correo.Tipo)
+		{
+			case TipoCorreo.Matematica:
+			{
+				int a = rnd.Next(4, 13);
+				int b = rnd.Next(3, 10);
+				int c = rnd.Next(2, 15);
+				correo.RespuestaCorrecta = a * b - c;
+				correo.Remitente = "Autorizaciones <autorizaciones@securenet.local>";
+				correo.Asunto = "URGENTE: detener autorización masiva";
+				correo.Cuerpo = $"Se intentan aprobar 2 accesos sin revisión.\n\nPara cancelar la orden, calculá:  {a} x {b} - {c} = ?\n\nSi fallás o vencen los {segundosCorreo} segundos, se autoaceptan hasta 2 solicitudes. ¡Respondé ya!";
+				break;
+			}
+			case TipoCorreo.Antivirus:
+			{
+				int a = rnd.Next(11, 30);
+				int b = rnd.Next(2, 11);
+				correo.RespuestaCorrecta = a + b;
+				correo.Remitente = "Seguridad IT <seguridad@securenet.local>";
+				correo.Asunto = "URGENTE: activar análisis de 2 conexiones";
+				correo.Cuerpo = $"El antivirus necesita autorización inmediata.\n\nCódigo de desbloqueo: {a} + {b} = ?\n\nSi acertás, revisará y resolverá correctamente 2 conexiones por vos. Si fallás, perdés 15 puntos y se acorta el tiempo de la solicitud actual.";
+				break;
+			}
+			case TipoCorreo.Phishing:
+			{
+				correo.AlertaReal = rnd.Next(2) == 0;
+				correo.Remitente = correo.AlertaReal
+					? "Seguridad IT <seguridad@securenet.local>"
+					: "Soporte <seguridad@securenet-soporte.com>";
+				correo.Asunto = correo.AlertaReal ? "Alerta real: validación de incidente" : "BLOQUEO INMEDIATO: verificá tu cuenta";
+				correo.Cuerpo = correo.AlertaReal
+					? "Detectamos un intento de ingreso extraño.\nDominio del remitente: securenet.local (interno).\n\nNo abras links: elegí VERIFICAR EN IT para gestionar el incidente por el canal oficial."
+					: "TU CUENTA SE ELIMINARÁ EN SEGUNDOS.\nIngresá al enlace de restauración.\nDominio del remitente: securenet-soporte.com (externo).\n\nSi es phishing, elegí REPORTAR PHISHING.";
+				break;
+			}
+			case TipoCorreo.CodigoCalculadora:
+			{
+				int codigo;
+				if (rnd.Next(2) == 0)
+					codigo = rnd.Next(100, 1000);
+				else
+					codigo = rnd.Next(1000, 10000);
+				correo.RespuestaCorrecta = codigo;
+				correo.Remitente = "Seguridad IT <seguridad@securenet.local>";
+				correo.Asunto = "URGENTE: recuperar puntos del sistema";
+				correo.Cuerpo =
+					$"Se detectaron registros pendientes de validación.\n\n" +
+					$"Para recuperar los puntos, abrí la CALCULADORA.\n\n" +
+					$"CÓDIGO: {codigo}\n\n" +
+					$"Ingresá el número y presioná = para confirmar.\n" +
+					$"Si hay otro número en pantalla, primero presioná C.\n\n" +
+					$"Tenés {segundosCorreo} segundos.\n\n" +
+					$"CORRECTO: +30 puntos.\n" +
+					$"INCORRECTO O FUERA DE TIEMPO: -10 puntos.";
+				break;
+			}
+		}
+
+		datos.CorreoActual = correo;
+		datos.AvisarCorreo();
+		// Primero aparece la notificación de emergencia; el correo se abre al tocar su botón.
+		ultimoMensaje = correo.Asunto;
+		tiempoAviso = 4;
+	}
+	private void RevisarCodigoCalculadora(string codigo)
+	{
+		CorreoEmergencia correo = datos.CorreoActual;
+		if (juegoTerminado || correo == null || !correo.Pendiente)
+			return;
+		if (correo.Tipo != TipoCorreo.CodigoCalculadora)
+			return;
+		ResponderCorreo(codigo);
+	}
+	private void ResponderCorreo(string respuesta)
+	{
+		CorreoEmergencia correo = datos.CorreoActual;
+		if (juegoTerminado || correo == null || !correo.Pendiente) return;
+		bool correcto;
+		if (correo.Tipo == TipoCorreo.Phishing)
+			correcto = (correo.AlertaReal && respuesta == "VERIFICAR") ||
+					   (!correo.AlertaReal && respuesta == "REPORTAR");
+		else
+			correcto = int.TryParse(respuesta, out int numero) && numero == correo.RespuestaCorrecta;
+
+		FinalizarCorreo(correcto, false);
+	}
+
+	private void FinalizarCorreo(bool correcto, bool vencido)
+	{
+		CorreoEmergencia correo = datos.CorreoActual;
+		if (juegoTerminado || correo == null || !correo.Pendiente) return;
+		correo.Pendiente = false;
+		proximoCorreo = rnd.Next(10, 15);
+		tiempoAviso = 5;
+
+		if (correcto)
+		{
+			correctosCorreo++;
+			switch (correo.Tipo)
+			{
+				case TipoCorreo.Matematica:
+					SumarPuntos(25);
+					ultimoMensaje = "Cancelaste el acceso masivo. +25 puntos.";
+					break;
+				case TipoCorreo.Antivirus:
+					ultimoMensaje = "Antivirus activado: 5 solicitudes analizadas.";
+					AnalizarCincoSolicitudes();
+					break;
+				case TipoCorreo.CodigoCalculadora:
+					SumarPuntos(30);
+					ultimoMensaje = "Código validado correctamente. +30 puntos.";
+					break;
+				case TipoCorreo.Phishing:
+					SumarPuntos(20);
+					proteccionesPendientes += 3;
+					ultimoMensaje = "Alerta gestionada. Firewall: 3 bloqueos extra. +20 puntos.";
+					break;
+			}
+		}
+		else
+		{
+			fallidosCorreo++;
+			switch (correo.Tipo)
+			{
+				case TipoCorreo.Matematica:
+					ultimoMensaje = "FALLO: se autoaceptaron solicitudes masivas.";
+					AceptarCincoAutomaticas();
+					break;
+				case TipoCorreo.Antivirus:
+					SumarPuntos(-15);
+					autoAceptar = Math.Min(autoAceptar, Math.Max(2, segundosAuto - 5));
+					ultimoMensaje = "Antivirus desactivado: -15 puntos y menos tiempo.";
+					break;
+				case TipoCorreo.CodigoCalculadora:
+					SumarPuntos(-10);
+					ultimoMensaje = "Código incorrecto o tiempo agotado. -10 puntos.";
+					break;
+				case TipoCorreo.Phishing:
+					if (vencido)
+					{
+						SumarPuntos(-10);
+						ultimoMensaje = "Alerta sin atender: -10 puntos.";
+					}
+					else
+					{
+						inversionesPendientes = 3;
+						alertaRoja.Pulso(0.75f);
+						ultimoMensaje = "INFECTADO: botones invertidos durante 3 decisiones.";
+					}
+					break;
+			}
+		}
+
+		correo.Resultado = (correcto ? "CORRECTO: " : vencido ? "TIEMPO AGOTADO: " : "ERROR: ") + ultimoMensaje;
+		datos.HistorialEmergencias.Add(DateTime.Now.ToString("HH:mm:ss") + " - " + correo.Resultado);
+		SincronizarDatos();
+		datos.AvisarCorreo();
+		datos.AvisarCambio();
+		VerificarFinDelJuego();
+	}
+
+	private void AnalizarCincoSolicitudes()
+	{
+		int limpias = 0;
+		int infectadas = 0;
+		// Cuenta la solicitud pendiente y otras cuatro, siempre usando
+		// las funciones normales Aceptar/Rechazar para mantener puntos y logs.
+		for (int i = 0; i < 5 && !juegoTerminado; i++)
+		{
+			if (conexionActual.Infectada)
+			{
+				Rechazar();
+				infectadas++;
+			}
+			else
+			{
+				Aceptar();
+				limpias++;
+			}
+			if (!juegoTerminado) GenerarSolicitud();
+		}
+		autoAceptar = segundosAuto;
+		datos.EstadoAntivirus = $"Último escaneo urgente: {limpias} seguras y {infectadas} amenazas bloqueadas.";
+		datos.AvisarCambio();
+	}
+
+	private void AceptarCincoAutomaticas()
+	{
+		// La dificultad establece cuántas autoaceptadas bastan para perder.
+		// Por eso puede terminar antes de registrar las 5.
+		for (int i = 0; i < 2 && !juegoTerminado; i++)
+		{
+			RegistrarDecision("AUTOACEPTADA");
+			autoAceptadas++;
+			VerificarFinDelJuego();
+			if (!juegoTerminado) GenerarSolicitud();
+		}
 		autoAceptar = segundosAuto;
 	}
 
@@ -596,6 +1027,9 @@ public partial class ComputerGameplay : Control
 	private void FinDelJuego(bool victoria, string motivo)
 	{
 		juegoTerminado = true;
+		if (datos.CorreoActual != null) datos.CorreoActual.Pendiente = false;
+		avisoEmergencia.Ocultar();
+		alertaSistema.Ocultar();
 		datos.Solicitud.Hay = false;
 		SincronizarDatos();
 		redFlagApp.Cerrar();
@@ -612,6 +1046,8 @@ public partial class ComputerGameplay : Control
 			$"Válidas aceptadas: {validasAceptadas}\n" +
 			$"Válidas rechazadas: {erroresRechazar}\n" +
 			$"Autoaceptadas: {autoAceptadas}\n" +
+			$"Correos urgentes correctos: {correctosCorreo}\n" +
+			$"Correos urgentes fallidos: {fallidosCorreo}\n" +
 			$"Tiempo: {TimeSpan.FromSeconds(tiempoJugado):mm\\:ss}";
 
 		AddChild(new GameOverScreen

@@ -128,7 +128,8 @@ public static class RedFlagUI
 		Action alCerrar = null,
 		Action<InputEvent> alEventoBarra = null,
 		Control icono = null,
-		bool mostrarMarca = true)
+		bool mostrarMarca = true,
+		Action alMaximizar = null)
 	{
 		PanelContainer ventana = new PanelContainer { CustomMinimumSize = minimo };
 		ventana.AddThemeStyleboxOverride("panel", Caja(FondoVentana, Borde, 1, 3));
@@ -172,7 +173,7 @@ public static class RedFlagUI
 		}
 		fila.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 		fila.AddChild(new IconoVentana { Tipo = IconoVentana.Clase.Minimizar, AlHacerClic = alMinimizar });
-		fila.AddChild(new IconoVentana { Tipo = IconoVentana.Clase.Maximizar });
+		fila.AddChild(new IconoVentana { Tipo = IconoVentana.Clase.Maximizar, AlHacerClic = alMaximizar });
 		fila.AddChild(new IconoVentana { Tipo = IconoVentana.Clase.Cerrar, AlHacerClic = alCerrar });
 
 		// Zona de contenido
