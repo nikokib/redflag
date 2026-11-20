@@ -53,16 +53,59 @@ public partial class MultiplayerOffice : Node2D
     {
         var layer = new CanvasLayer(); AddChild(layer);
         var root = new Control(); root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect); layer.AddChild(root);
-        root.Visible = PlayerPreferences.HudEnabled;
+        // La navegación debe estar disponible aunque se oculte el HUD.
+        root.Visible = true;
+        root.MouseFilter = Control.MouseFilterEnum.Ignore;
         var info = new PanelContainer { AnchorLeft = 0.02f, AnchorTop = 0.02f, AnchorRight = 0.39f, AnchorBottom = 0.20f };
-        root.AddChild(info); var column = new VBoxContainer(); info.AddChild(column);
+        root.AddChild(info); info.Visible = PlayerPreferences.HudEnabled;
+        var column = new VBoxContainer(); info.AddChild(column);
         column.AddChild(new Label { Text = $"RED FLAG · {_session.GameMode}" });
         column.AddChild(new Label { Text = $"Tu rol: {_session.LocalRole} · {_session.DurationMinutes} min · {_session.Difficulty}", AutowrapMode = TextServer.AutowrapMode.WordSmart });
-        var list = new PanelContainer { AnchorLeft = 0.73f, AnchorTop = 0.02f, AnchorRight = 0.98f, AnchorBottom = 0.32f }; root.AddChild(list);
+        var list = new PanelContainer { AnchorLeft = 0.73f, AnchorTop = 0.02f, AnchorRight = 0.98f, AnchorBottom = 0.32f };
+        root.AddChild(list);
+        list.Visible = PlayerPreferences.HudEnabled;
         var roster = new VBoxContainer(); list.AddChild(roster); roster.AddChild(new Label { Text = "EN LA OFICINA" });
         foreach (var player in _session.Players) roster.AddChild(new Label { Text = $"• {player.Value} [{_session.PlayerCodes.GetValueOrDefault(player.Key, "--------")}]" });
-        var leave = new Button { Text = "Salir de la partida", AnchorLeft = 0.02f, AnchorTop = 0.92f, AnchorRight = 0.20f, AnchorBottom = 0.98f };
-        leave.Pressed += () => { _session.LeaveRoom(); GetTree().ChangeSceneToFile("res://Scenes/MultiplayerMenu.tscn"); }; root.AddChild(leave);
+        var leave = new Button
+        {
+            Text = "← VOLVER AL MENÚ",
+            AnchorLeft = 0.02f, AnchorTop = 0.90f,
+            AnchorRight = 0.24f, AnchorBottom = 0.98f
+        };
+        leave.Pressed += VolverAlMenu;
+        root.AddChild(leave);
+        if (_session.GameMode == "Salva la red")
+        {
+            var listo = new Button
+            {
+                Text = "LISTO · ABRIR RED FLAG",
+                AnchorLeft = 0.23f, AnchorTop = 0.92f,
+                AnchorRight = 0.50f, AnchorBottom = 0.98f
+            };
+            listo.Pressed += () =>
+            {
+                listo.Disabled = true;
+                listo.Text = "ESPERANDO AL EQUIPO...";
+                _session.MarcarListoCooperativo();
+            };
+            root.AddChild(listo);
+        }
+    }
+
+    // Salir siempre funciona desde el botón o desde Escape.
+    private void VolverAlMenu()
+    {
+        _session.LeaveRoom();
+        GetTree().ChangeSceneToFile("res://Scenes/MenuPrincipal.tscn");
+    }
+
+    public override void _UnhandledKeyInput(InputEvent evento)
+    {
+        if (evento is InputEventKey tecla && tecla.Pressed && !tecla.Echo && tecla.Keycode == Key.Escape)
+        {
+            GetViewport().SetInputAsHandled();
+            VolverAlMenu();
+        }
     }
 
     private static void AddNameTag(Player player, string name, bool local)

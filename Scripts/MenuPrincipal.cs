@@ -92,10 +92,12 @@ public partial class MenuPrincipal : Node2D
 	{
 		GetTree().ChangeSceneToFile("Scenes/Oficina.tscn");
 	}
-
+	
 	private void Multijugador()
 	{
-		multiplayerPanel.Visible = true;
+		GetTree().ChangeSceneToFile(
+	        "res://Scenes/MultiplayerMenu.tscn"
+		);
 	}
 
 	private SettingsMenu menuOpcionesNuevo;

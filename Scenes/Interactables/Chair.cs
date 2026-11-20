@@ -6,6 +6,7 @@ public partial class Chair : Node2D
 	private bool playerNear = false;
 	private Player jugador;
 	private ConfigPartidaPanel panelConfig;
+    private bool listoMultijugador = false;
 
 	public override void _Ready()
 	{
@@ -23,6 +24,17 @@ public partial class Chair : Node2D
 
 	private void AbrirConfig()
 	{
+        NetworkSession sesion = GetNodeOrNull<NetworkSession>("/root/NetworkSession");
+        if (sesion != null && sesion.IsConnected && !sesion.IsInLobby)
+        {
+            if (sesion.GameMode == "Salva la red" && !listoMultijugador)
+            {
+                listoMultijugador = true;
+                sesion.MarcarListoCooperativo();
+            }
+            // En una partida online la silla nunca abre ComputerGameplay individual.
+            return;
+        }
 		if (jugador != null) jugador.CanControl = false;
 
 		panelConfig = new ConfigPartidaPanel();

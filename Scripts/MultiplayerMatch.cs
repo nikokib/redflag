@@ -18,7 +18,25 @@ public partial class MultiplayerMatch : Control
 		bool hacker = session.LocalRole.Contains("Hacker");
 		var role = new Label { Text = session.LocalRole.ToUpperInvariant(), HorizontalAlignment = HorizontalAlignment.Center }; role.AddThemeFontSizeOverride("font_size", 36); role.AddThemeColorOverride("font_color", PlayerPreferences.ColorblindMode ? (hacker ? new Color("d55e00") : new Color("0072b2")) : (hacker ? new Color("ff6565") : new Color("83e1b2"))); column.AddChild(role);
 		column.AddChild(new Label { Text = $"Modo: {session.GameMode}\nDuración: {session.DurationMinutes} minutos\nDificultad: {session.Difficulty}\n\nMemoriza tu rol. Al continuar entrarás a la oficina con los demás jugadores.", HorizontalAlignment = HorizontalAlignment.Center, AutowrapMode = TextServer.AutowrapMode.WordSmart });
-		var enter = new Button { Text = "Entrar a la oficina" }; enter.Pressed += () => GetTree().ChangeSceneToFile("res://Scenes/MultiplayerOffice.tscn"); column.AddChild(enter);
+        var enter = new Button { Text = "Entrar a la oficina" };
+        if (session.GameMode == "Salva la red")
+        {
+            column.AddChild(new Label
+            {
+                Text = "Modo cooperativo: entrá a la oficina y sentate con E, o presioná el botón LISTO. El anfitrión iniciará la consola cuando todos estén preparados.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart
+            });
+        }
+        else
+        {
+            column.AddChild(new Label
+            {
+                Text = "Este modo conserva la oficina y los avatares, pero sus reglas de juego aún están pendientes.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart
+            });
+        }
+        enter.Pressed += () => GetTree().ChangeSceneToFile("res://Scenes/MultiplayerOffice.tscn");
+        column.AddChild(enter);
 		var leave = new Button { Text = "Abandonar partida" }; leave.Pressed += () => { session.LeaveRoom(); GetTree().ChangeSceneToFile("res://Scenes/MultiplayerMenu.tscn"); }; column.AddChild(leave);
 	}
 }

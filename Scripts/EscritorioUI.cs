@@ -22,6 +22,7 @@ public partial class EscritorioUI : Control
 
 	/// <summary>Si se asigna, tocar el ícono "Red Flags" abre la ventana grande de Red Flag en vez de una ventana común.</summary>
 	public Action AlAbrirRedFlag;
+	public Action AlSalirMultijugador;
 
 	private const string RutaFondo = "res://Interfaz/escritorio_fondo.png";
 
@@ -229,8 +230,23 @@ public partial class EscritorioUI : Control
 		menuInicio = new MenuInicio
 		{
 			AlElegirApp = id => { AlAbrirAppUsuario?.Invoke(id); AbrirApp(id); },
-			AlApagar = () => PantallaEnergia.Apagar(this),
-			AlReiniciar = () => PantallaEnergia.ReiniciarPartida(this)
+			AlApagar = () =>
+			{
+				if (AlSalirMultijugador != null) AlSalirMultijugador();
+				else PantallaEnergia.Apagar(this);
+			},
+			AlReiniciar = () =>
+			{
+				if (AlSalirMultijugador != null)
+				{
+					var aviso = new AcceptDialog { Title = "Multijugador", DialogText = "Reiniciar por separado no está disponible. Usá APAGAR para salir de la sala." };
+					AddChild(aviso);
+					aviso.Confirmed += () => aviso.QueueFree();
+					aviso.Canceled += () => aviso.QueueFree();
+					aviso.PopupCentered();
+				}
+				else PantallaEnergia.ReiniciarPartida(this);
+			}
 		};
 		AddChild(menuInicio);
 

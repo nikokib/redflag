@@ -110,6 +110,8 @@ public class DatosEscritorio
 	public CorreoEmergencia CorreoActual;
 	public Action<string> ResponderCorreo;
 	public Action<string> CodigoDesdeCalculadora;
+    public Func<bool, bool> AgregarListaRemota;
+    public Action<bool, string> QuitarListaRemota;
 	public string EstadoAntivirus = "Aún no hubo análisis de emergencia.";
 	public int ProteccionesFirewall;
 	public int InversionBotones;
@@ -120,6 +122,7 @@ public class DatosEscritorio
 
 	public void AvisarCorreo() => CorreoCambio?.Invoke();
 	public void AvisarCambio() => Cambio?.Invoke();
+    public void AvisarListas() => ListasCambio?.Invoke();
 
 	/// <summary>Se dispara cada vez que se agrega un registro.</summary>
 	public event Action Cambio;
@@ -136,6 +139,7 @@ public class DatosEscritorio
 	/// <summary>Agrega la solicitud actual a una lista. Devuelve false si ya estaba en alguna de las dos.</summary>
 	public bool AgregarALista(bool blanca)
 	{
+        if (AgregarListaRemota != null) return AgregarListaRemota(blanca);
 		if (!Solicitud.Hay) return false;
 
 		bool repetida = Whitelist.Any(e => e.IP == Solicitud.IP) || Blacklist.Any(e => e.IP == Solicitud.IP);
@@ -177,6 +181,7 @@ public class DatosEscritorio
 
 	public void QuitarDeLista(bool blanca, EntradaLista entrada)
 	{
+        if (QuitarListaRemota != null) { QuitarListaRemota(blanca, entrada.IP); return; }
 		(blanca ? Whitelist : Blacklist).Remove(entrada);
 		ListasCambio?.Invoke();
 	}

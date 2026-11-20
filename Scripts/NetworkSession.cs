@@ -16,6 +16,12 @@ public partial class NetworkSession : Node
     public const int DefaultPort = 24567;
     public const int DiscoveryPort = 24568;
     public event Action? Changed;
+    // Puente entre el servidor y la pantalla cooperativa.
+    public event Action<string>? EstadoCooperativoRecibido;
+    public event Action<long, string, string>? AccionCooperativaRecibida;
+    private readonly HashSet<long> _jugadoresListos = new();
+    private bool _cooperativoComenzado;
+
 
     public sealed class PublicRoomInfo
     {
@@ -70,7 +76,33 @@ public partial class NetworkSession : Node
     private double _browserTimeLeft;
     private string _browserQuery = "";
 
-    public override void _Ready() { ProcessMode = ProcessModeEnum.Always; }
+    // Callables persistentes: permiten conectar y desconectar sin generar errores
+    // al entrar o salir de una sala repetidas veces.
+    private Callable _alConectarJugador;
+    private Callable _alDesconectarJugador;
+    private Callable _alConectarServidor;
+    private Callable _alFallarConexion;
+    private Callable _alDesconectarServidor;
+
+    public override void _Ready()
+    {
+        ProcessMode = ProcessModeEnum.Always;
+        _alConectarJugador = Callable.From<long>(OnPeerConnected);
+        _alDesconectarJugador = Callable.From<long>(OnPeerDisconnected);
+        _alConectarServidor = Callable.From(OnConnectedToServer);
+        _alFallarConexion = Callable.From(OnConnectionFailed);
+        _alDesconectarServidor = Callable.From(OnServerDisconnected);
+    }
+
+    private void ConectarSenal(StringName nombre, Callable accion)
+    {
+        if (!Multiplayer.IsConnected(nombre, accion)) Multiplayer.Connect(nombre, accion);
+    }
+
+    private void DesconectarSenal(StringName nombre, Callable accion)
+    {
+        if (Multiplayer.IsConnected(nombre, accion)) Multiplayer.Disconnect(nombre, accion);
+    }
 
     public override void _Process(double delta)
     {
@@ -90,7 +122,7 @@ public partial class NetworkSession : Node
         LocalPlayerName = CleanName(playerName, "Anfitrión");
         LocalPlayerId = CleanCode(playerId);
         RoomName = CleanName(roomName, "Sala de Red Flag");
-        MaxPlayers = Math.Clamp(maxPlayers, 3, 15);
+        MaxPlayers = Math.Clamp(maxPlayers, 4, 15);
         DurationMinutes = Math.Clamp(durationMinutes, 1, 60);
         Difficulty = difficulty; GameMode = gameMode; IsPrivate = isPrivate;
         PrivatePassword = isPrivate ? password : "";
@@ -116,7 +148,8 @@ public partial class NetworkSession : Node
         Multiplayer.MultiplayerPeer = _peer;
         IsConnected = true; IsHost = true; IsInLobby = true; _joinAccepted = true;
         _players.Clear(); _playerCodes.Clear(); _networkPositions.Clear(); _players[1] = LocalPlayerName; _playerCodes[1] = LocalPlayerId; _networkPositions[1] = new Vector2(520, 340);
-        Multiplayer.PeerConnected += OnPeerConnected; Multiplayer.PeerDisconnected += OnPeerDisconnected;
+        ConectarSenal(MultiplayerApi.SignalName.PeerConnected, _alConectarJugador);
+        ConectarSenal(MultiplayerApi.SignalName.PeerDisconnected, _alDesconectarJugador);
         StartDiscoveryListener();
         SetStatus($"Sala creada en el puerto UDP {Port}. Comparte la IP de tu equipo para conexiones fuera de la red local.");
         BroadcastRoomInfo(); EmitChanged(); return Error.Ok;
@@ -132,14 +165,16 @@ public partial class NetworkSession : Node
         _peer = new ENetMultiplayerPeer(); Error error = _peer.CreateClient(parsed.ToString(), Port);
         if (error != Error.Ok) { _peer = null; SetStatus($"No se pudo conectar: {error}"); return error; }
         Multiplayer.MultiplayerPeer = _peer; IsConnected = false; IsHost = false; IsInLobby = false;
-        Multiplayer.ConnectedToServer += OnConnectedToServer; Multiplayer.ConnectionFailed += OnConnectionFailed; Multiplayer.ServerDisconnected += OnServerDisconnected;
+        ConectarSenal(MultiplayerApi.SignalName.ConnectedToServer, _alConectarServidor);
+        ConectarSenal(MultiplayerApi.SignalName.ConnectionFailed, _alFallarConexion);
+        ConectarSenal(MultiplayerApi.SignalName.ServerDisconnected, _alDesconectarServidor);
         _pendingPassword = password; SetStatus($"Conectando a {parsed}:{Port}…"); EmitChanged(); return Error.Ok;
     }
 
     public void UpdateRoomSettings(string roomName, int maxPlayers, int durationMinutes, string difficulty, string gameMode, bool isPrivate, string password)
     {
         if (!IsHost || !IsInLobby) return;
-        RoomName = CleanName(roomName, "Sala de Red Flag"); MaxPlayers = Math.Clamp(maxPlayers, 3, 15);
+        RoomName = CleanName(roomName, "Sala de Red Flag"); MaxPlayers = Math.Clamp(maxPlayers, 4, 15);
         DurationMinutes = Math.Clamp(durationMinutes, 1, 60); Difficulty = difficulty; GameMode = gameMode;
         IsPrivate = isPrivate; PrivatePassword = isPrivate ? password : "";
         BroadcastRoomInfo(); EmitChanged();
@@ -160,10 +195,21 @@ public partial class NetworkSession : Node
         _browserTimeLeft = 1.5; SetStatus("Buscando salas públicas de la red local…"); EmitChanged();
     }
 
-    public void StartMatch()
+    public void StartMatch(bool modoPrueba = false)
     {
         if (!IsHost || !IsInLobby) return;
-        if (_players.Count < 2) { SetStatus("Conecta al menos otro jugador para probar la partida."); return; }
+        if (modoPrueba && GameMode != "Salva la red")
+        {
+            SetStatus("La prueba con 2 jugadores sólo está disponible en Salva la red.");
+            return;
+        }
+        int minimo = modoPrueba ? 2 : 4;
+        if (_players.Count < minimo)
+        {
+            int faltan = minimo - _players.Count;
+            SetStatus($"Faltan {faltan} jugador(es) para {(modoPrueba ? "la prueba cooperativa" : "la partida normal")}. Conectados: {_players.Count}/{MaxPlayers}.");
+            return;
+        }
         var ids = _players.Keys.ToList(); var roles = new Dictionary<long, string>();
         foreach (long id in ids) roles[id] = "Hacker";
         var rng = new Random();
@@ -175,6 +221,7 @@ public partial class NetworkSession : Node
             case "Impostor reverso": roles[ids[rng.Next(ids.Count)]] = "Administrador infiltrado"; break;
             default: foreach (long id in ids) roles[id] = "Administrador"; break;
         }
+        _jugadoresListos.Clear(); _cooperativoComenzado = false;
         IsInLobby = false; SetStatus("Partida iniciada."); StopDiscoveryListener();
         string roster = string.Join("\n", _players.Select(p => $"{p.Key}|{SafeField(p.Value)}|{SafeField(_playerCodes.GetValueOrDefault(p.Key, ""))}"));
         foreach (long id in ids)
@@ -189,11 +236,15 @@ public partial class NetworkSession : Node
     public void LeaveRoom(bool updateStatus = true)
     {
         StopDiscoveryListener(); _browserSocket?.Close(); _browserSocket = null;
-        Multiplayer.PeerConnected -= OnPeerConnected; Multiplayer.PeerDisconnected -= OnPeerDisconnected;
-        Multiplayer.ConnectedToServer -= OnConnectedToServer; Multiplayer.ConnectionFailed -= OnConnectionFailed; Multiplayer.ServerDisconnected -= OnServerDisconnected;
+        DesconectarSenal(MultiplayerApi.SignalName.PeerConnected, _alConectarJugador);
+        DesconectarSenal(MultiplayerApi.SignalName.PeerDisconnected, _alDesconectarJugador);
+        DesconectarSenal(MultiplayerApi.SignalName.ConnectedToServer, _alConectarServidor);
+        DesconectarSenal(MultiplayerApi.SignalName.ConnectionFailed, _alFallarConexion);
+        DesconectarSenal(MultiplayerApi.SignalName.ServerDisconnected, _alDesconectarServidor);
         if (_peer != null) { _peer.Close(); _peer = null; }
         Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer(); IsConnected = false; IsHost = false; IsInLobby = false; IsPrivate = false; _joinAccepted = false;
         _players.Clear(); _playerCodes.Clear(); _networkPositions.Clear(); LocalRole = "Sin asignar";
+        _jugadoresListos.Clear(); _cooperativoComenzado = false;
         if (updateStatus) SetStatus("Desconectado"); EmitChanged();
     }
 
@@ -247,7 +298,7 @@ public partial class NetworkSession : Node
     private void OnPeerConnected(long id) { if (IsHost) SetStatus($"Jugador {id} conectándose…"); }
     private void OnPeerDisconnected(long id)
     {
-        if (!IsHost) return; _players.Remove(id); _playerCodes.Remove(id); _networkPositions.Remove(id); BroadcastPlayerList(); BroadcastRoomInfo(); SetStatus($"El jugador {id} se desconectó."); EmitChanged();
+        if (!IsHost) return; _jugadoresListos.Remove(id); _players.Remove(id); _playerCodes.Remove(id); _networkPositions.Remove(id); BroadcastPlayerList(); BroadcastRoomInfo(); SetStatus($"El jugador {id} se desconectó."); EmitChanged();
     }
     private void OnConnectedToServer() { IsConnected = true; SetStatus("Conectado. Validando acceso a la sala…"); RpcId(1, nameof(RegisterPlayer), _pendingPassword, LocalPlayerName, LocalPlayerId); EmitChanged(); }
     private void OnConnectionFailed() { LeaveRoom(false); SetStatus("No se pudo entrar. Comprueba IP, puerto y conexión; si la sala es privada, verifica la contraseña."); EmitChanged(); }
@@ -257,6 +308,7 @@ public partial class NetworkSession : Node
     public void RegisterPlayer(string password, string playerName, string playerId)
     {
         if (!IsHost) return; long senderId = Multiplayer.GetRemoteSenderId(); if (senderId <= 1) return;
+        if (!IsInLobby) { RpcId(senderId, nameof(JoinRejected), "La partida ya comenzó."); return; }
         if (_players.Count >= MaxPlayers) { RpcId(senderId, nameof(JoinRejected), "La sala está llena. Elige otra sala o espera a que se libere un lugar."); return; }
         if (IsPrivate && password != PrivatePassword) { RpcId(senderId, nameof(JoinRejected), "La contraseña es incorrecta."); return; }
         _players[senderId] = CleanName(playerName, $"Jugador {senderId}"); _playerCodes[senderId] = CleanCode(playerId); _networkPositions[senderId] = new Vector2(520 + (_players.Count * 36), 340);
@@ -312,6 +364,73 @@ public partial class NetworkSession : Node
     }
     [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
     public void ReceivePlayerPosition(long peerId, Vector2 position) { _networkPositions[peerId] = position; }
+
+    // El anfitrión comienza el escritorio SOLO cuando todos confirmaron que están listos.
+    public void MarcarListoCooperativo()
+    {
+        if (!IsConnected || IsInLobby || GameMode != "Salva la red") return;
+        if (IsHost) { _jugadoresListos.Add(1); ComprobarListos(); }
+        else RpcId(1, nameof(RecibirListoCooperativo));
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false,
+        TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    public void RecibirListoCooperativo()
+    {
+        if (!IsHost || IsInLobby || GameMode != "Salva la red") return;
+        long id = Multiplayer.GetRemoteSenderId();
+        if (!_players.ContainsKey(id)) return;
+        _jugadoresListos.Add(id);
+        ComprobarListos();
+    }
+
+    private void ComprobarListos()
+    {
+        if (_cooperativoComenzado || _players.Count < 2) return;
+        if (!_players.Keys.All(id => _jugadoresListos.Contains(id))) return;
+        _cooperativoComenzado = true;
+        Rpc(nameof(AbrirConsolaCooperativa));
+        AbrirConsolaCooperativa();
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = false,
+        TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    public void AbrirConsolaCooperativa()
+    {
+        if (GameMode != "Salva la red" || !IsConnected) return;
+        GetTree().ChangeSceneToFile("res://Scenes/ComputerGameplay.tscn");
+    }
+
+    public void EnviarEstadoCooperativo(string json)
+    {
+        if (!IsConnected || !IsHost || GameMode != "Salva la red") return;
+        Rpc(nameof(RecibirEstadoCooperativo), json);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = false,
+        TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    public void RecibirEstadoCooperativo(string json)
+    {
+        if (IsHost || !IsConnected || GameMode != "Salva la red") return;
+        EstadoCooperativoRecibido?.Invoke(json);
+    }
+
+    // El cliente envía una acción; el anfitrión la comprueba contra la solicitud/correo actual.
+    public void EnviarAccionCooperativa(string tipo, string valor)
+    {
+        if (!IsConnected || IsHost || GameMode != "Salva la red") return;
+        RpcId(1, nameof(RecibirAccionCooperativa), tipo, valor);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false,
+        TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    public void RecibirAccionCooperativa(string tipo, string valor)
+    {
+        if (!IsHost || IsInLobby || GameMode != "Salva la red") return;
+        long id = Multiplayer.GetRemoteSenderId();
+        if (!_players.ContainsKey(id)) return;
+        AccionCooperativaRecibida?.Invoke(id, tipo, valor);
+    }
 
     private void SetStatus(string status) { Status = status; EmitChanged(); }
     private void EmitChanged() => Changed?.Invoke();

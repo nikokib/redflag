@@ -37,6 +37,11 @@ public partial class MultiplayerMenu : Control
 	private Label _lobbyInfo = null!;
 	private Label _players = null!;
 	private Button _startButton = null!;
+	private Button _testButton = null!;
+	private Label _playerCountLabel = null!;
+	private Label _lobbyMessage = null!;
+	private HBoxContainer _passwordRow = null!;
+	private LineEdit _passwordPreview = null!;
 	private readonly List<NetworkSession.PublicRoomInfo> _shownRooms = new();
 	private bool _isEditingLobbySettings;
 
@@ -52,21 +57,31 @@ public partial class MultiplayerMenu : Control
 	{
 		var office = GD.Load<PackedScene>("res://Scenes/Oficina.tscn");
 		if (office != null) { _officeBackground = office.Instantiate(); AddChild(_officeBackground); MoveChild(_officeBackground, 0); var idlePlayer = _officeBackground.GetNodeOrNull<Player>("CharacterBody2D"); if (idlePlayer != null) idlePlayer.CanControl = false; }
-		var shade = new ColorRect { Color = new Color(0.025f, 0.05f, 0.07f, 0.62f), MouseFilter = Control.MouseFilterEnum.Ignore };
-		shade.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect); AddChild(shade);
+		// La oficina contiene una Camera2D. La interfaz debe dibujarse
+		// en una capa independiente para que la cámara no la desplace.
+		var uiLayer = new CanvasLayer { Layer = 10 };
+		AddChild(uiLayer);
+		var uiRoot = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };
+		uiLayer.AddChild(uiRoot);
+		uiRoot.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
-		var brand = new VBoxContainer(); brand.AnchorLeft = 0.04f; brand.AnchorTop = 0.08f; brand.AnchorRight = 0.45f; brand.AnchorBottom = 0.40f; AddChild(brand);
+		var shade = new ColorRect { Color = new Color(0.025f, 0.05f, 0.07f, 0.62f), MouseFilter = Control.MouseFilterEnum.Ignore };
+		uiRoot.AddChild(shade);
+		shade.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
+		var brand = new VBoxContainer(); brand.AnchorLeft = 0.04f; brand.AnchorTop = 0.08f; brand.AnchorRight = 0.45f; brand.AnchorBottom = 0.40f; uiRoot.AddChild(brand);
 		var title = new Label { Text = "RED FLAG", AutowrapMode = TextServer.AutowrapMode.WordSmart }; title.AddThemeFontSizeOverride("font_size", 42); brand.AddChild(title);
 		var subtitle = new Label { Text = "MULTIJUGADOR  /  NEXATECH", AutowrapMode = TextServer.AutowrapMode.WordSmart }; subtitle.AddThemeFontSizeOverride("font_size", 19); subtitle.AddThemeColorOverride("font_color", new Color("9ed9e7")); brand.AddChild(subtitle);
 		_status = new Label { Text = "Buscando salas…", AutowrapMode = TextServer.AutowrapMode.WordSmart }; _status.AddThemeColorOverride("font_color", new Color("e4edf0")); brand.AddChild(_status);
 		var back = new Button { Text = "← Volver al menú" }; back.Pressed += () => { _session.LeaveRoom(); GetTree().ChangeSceneToFile("res://Scenes/MenuPrincipal.tscn"); }; brand.AddChild(back);
 
-		_browserPanel = MakePanel(0.53f, 0.07f, 0.97f, 0.93f); AddChild(_browserPanel);
+		_browserPanel = MakePanel(0.53f, 0.07f, 0.97f, 0.93f); uiRoot.AddChild(_browserPanel);
 		BuildBrowser();
-		_joinIpPanel = MakePanel(0.54f, 0.18f, 0.96f, 0.82f); AddChild(_joinIpPanel); BuildJoinIp();
-		_createPanel = MakePanel(0.54f, 0.08f, 0.96f, 0.92f); AddChild(_createPanel); BuildCreateSettings();
-		_lobbyPanel = MakePanel(0.54f, 0.07f, 0.97f, 0.93f); AddChild(_lobbyPanel); BuildLobby();
-		_settingsPanel = MakePanel(0.48f, 0.05f, 0.98f, 0.95f); AddChild(_settingsPanel); BuildLobbySettings();
+		_joinIpPanel = MakePanel(0.54f, 0.18f, 0.96f, 0.82f); uiRoot.AddChild(_joinIpPanel); BuildJoinIp();
+		// Formulario centrado, con espacio para todas las opciones.
+		_createPanel = MakePanel(0.12f, 0.05f, 0.88f, 0.95f); uiRoot.AddChild(_createPanel); BuildCreateSettings();
+		_lobbyPanel = MakePanel(0.54f, 0.07f, 0.97f, 0.93f); uiRoot.AddChild(_lobbyPanel); BuildLobby();
+		_settingsPanel = MakePanel(0.12f, 0.05f, 0.88f, 0.95f); uiRoot.AddChild(_settingsPanel); BuildLobbySettings();
 		ShowMode("browser");
 	}
 
@@ -79,7 +94,12 @@ public partial class MultiplayerMenu : Control
 		var refresh = new Button { Text = "↻ Actualizar salas" }; refresh.Pressed += () => _session.RefreshPublicRooms(_search.Text); box.AddChild(refresh);
 		_roomList = new ItemList { SizeFlagsVertical = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 230), SelectMode = ItemList.SelectModeEnum.Single }; box.AddChild(_roomList);
 		_roomList.ItemSelected += _ => { if (_roomList.GetSelectedItems().Length > 0) { var room = _shownRooms[_roomList.GetSelectedItems()[0]]; _joinAddress.Text = room.Address; _joinPort.Value = room.Port; } };
-		_lobbyPassword = AddLine(box, "Contraseña de la sala (si corresponde)", ""); _lobbyPassword.Secret = true;
+		_lobbyPassword = AddLine(box, "Contraseña de la sala (si corresponde)", "");
+		_lobbyPassword.Secret = true;
+		_lobbyPassword.PlaceholderText = "Sólo para salas con contraseña";
+		var revealBrowser = new CheckButton { Text = "Mostrar contraseña" };
+		revealBrowser.Toggled += visible => _lobbyPassword.Secret = !visible;
+		box.AddChild(revealBrowser);
 		var actions = new HBoxContainer(); box.AddChild(actions);
 		var join = new Button { Text = "Unirse a sala", SizeFlagsHorizontal = SizeFlags.ExpandFill }; join.Pressed += JoinSelectedRoom; actions.AddChild(join);
 		var joinIp = new Button { Text = "Unirse a sala por IP", SizeFlagsHorizontal = SizeFlags.ExpandFill }; joinIp.Pressed += () => ShowMode("joinip"); actions.AddChild(joinIp);
@@ -93,43 +113,155 @@ public partial class MultiplayerMenu : Control
 		AddTitle(box, "Unirse a sala por IP");
 		_joinAddress = AddLine(box, "IP IPv4 del anfitrión", "127.0.0.1");
 		_joinPort = AddSpin(box, "Puerto UDP", NetworkSession.DefaultPort, 1024, 65535, 1);
-		_joinPassword = AddLine(box, "Contraseña (si corresponde)", ""); _joinPassword.Secret = true;
+		_joinPassword = AddLine(box, "Contraseña (si corresponde)", "");
+		_joinPassword.Secret = true;
+		var revealJoin = new CheckButton { Text = "Mostrar contraseña" };
+		revealJoin.Toggled += visible => _joinPassword.Secret = !visible;
+		box.AddChild(revealJoin);
 		var join = new Button { Text = "Conectar" }; join.Pressed += JoinByIp; box.AddChild(join);
 		var back = new Button { Text = "Volver al navegador" }; back.Pressed += () => ShowMode("browser"); box.AddChild(back);
 	}
 
 	private void BuildCreateSettings()
 	{
-		var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill }; _createPanel.AddChild(scroll);
-		var box = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; box.AddThemeConstantOverride("separation", 8); scroll.AddChild(box);
-		AddTitle(box, "Crear sala · Configuración inicial");
+		// El formulario usa una zona desplazable; los botones quedan fijos abajo.
+		var layout = new VBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill
+		};
+		layout.AddThemeConstantOverride("separation", 10);
+		_createPanel.AddChild(layout);
+		AddTitle(layout, "Crear sala · Configuración inicial");
+
+		var scroll = new ScrollContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill
+		};
+		layout.AddChild(scroll);
+		var box = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		box.AddThemeConstantOverride("separation", 8);
+		scroll.AddChild(box);
+
 		_roomName = AddLine(box, "Nombre de la sala", "Sala de Red Flag");
 		_bindMode = AddOption(box, "IP de escucha", new[] { "Automática (todas las interfaces)", "Personalizada" }, 0);
 		_bindIp = AddLine(box, "IP local personalizada", "127.0.0.1"); _bindIp.Editable = false;
 		_bindMode.ItemSelected += idx => _bindIp.Editable = idx == 1;
-		_port = AddSpin(box, "Puerto inicial (se buscará el siguiente libre)", NetworkSession.DefaultPort, 1024, 65535, 1);
-		_maxPlayers = AddSpin(box, "Capacidad (3–15 jugadores)", 8, 3, 15, 1);
+		_port = AddSpin(box, "Puerto UDP", NetworkSession.DefaultPort, 1024, 65535, 1);
+		_maxPlayers = AddSpin(box, "Capacidad (4–15 jugadores)", 8, 4, 15, 1);
 		_duration = AddSpin(box, "Duración (minutos)", 10, 1, 60, 1);
 		_difficulty = AddOption(box, "Dificultad", new[] { "Fácil", "Normal", "Difícil" }, 1);
-		_mode = AddOption(box, "Modo de juego", new[] { "Salva la red", "Impostor", "Destruye la red", "Impostor reverso" }, 1);
-		_privateRoom = new CheckButton { Text = "Sala privada (no aparece en el navegador)", ButtonPressed = false }; box.AddChild(_privateRoom);
-		_hostPassword = AddLine(box, "Contraseña (vacío = generar automáticamente)", ""); _hostPassword.MaxLength = 24; _hostPassword.Secret = true; _hostPassword.Editable = false;
-		_privateRoom.Toggled += pressed => _hostPassword.Editable = pressed;
-		var create = new Button { Text = "Crear sala y entrar a la oficina" }; create.Pressed += CreateRoom; box.AddChild(create);
-		var back = new Button { Text = "Cancelar" }; back.Pressed += () => ShowMode("browser"); box.AddChild(back);
-		box.AddChild(new Label { Text = "Automática usa 0.0.0.0: el juego escucha en todas las interfaces IPv4 disponibles. Personalizada solo acepta una IPv4 válida y asignada a este equipo.", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+		// El modo Salva la red es el cooperativo que estamos probando.
+		_mode = AddOption(box, "Modo de juego", new[] { "Salva la red", "Impostor", "Destruye la red", "Impostor reverso" }, 0);
+		_privateRoom = new CheckButton { Text = "Sala privada (requiere contraseña)", ButtonPressed = false };
+		box.AddChild(_privateRoom);
+		_hostPassword = AddLine(box, "Contraseña de la sala", "");
+		_hostPassword.MaxLength = 24;
+		_hostPassword.Secret = true;
+		_hostPassword.Editable = true; // Siempre deja escribir; activa "Sala privada" automáticamente.
+		_hostPassword.PlaceholderText = "Escribí una clave o dejala vacía para generarla";
+		_hostPassword.TextChanged += value =>
+		{
+			if (!string.IsNullOrWhiteSpace(value)) _privateRoom.ButtonPressed = true;
+		};
+		var showCreatePassword = new CheckButton { Text = "Mostrar contraseña" };
+		showCreatePassword.Toggled += visible => _hostPassword.Secret = !visible;
+		box.AddChild(showCreatePassword);
+		box.AddChild(new Label
+		{
+			Text = "Si elegís IP automática, el servidor escucha en todas las interfaces. El modo cooperativo disponible es Salva la red.",
+			AutowrapMode = TextServer.AutowrapMode.WordSmart
+		});
+
+		var actions = new HBoxContainer();
+		actions.AddThemeConstantOverride("separation", 10);
+		layout.AddChild(actions);
+		var create = new Button { Text = "CREAR SALA", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		create.Pressed += CreateRoom; actions.AddChild(create);
+		var back = new Button { Text = "CANCELAR", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		back.Pressed += () => ShowMode("browser"); actions.AddChild(back);
 	}
 
 	private void BuildLobby()
 	{
-		var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 10); _lobbyPanel.AddChild(box);
-		var heading = new HBoxContainer(); box.AddChild(heading); AddTitle(heading, "Oficina · Sala de espera");
-		var spacer = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill }; heading.AddChild(spacer);
-		var gear = new Button { Text = "⚙", TooltipText = "Configuración de sala" }; gear.Pressed += () => { SyncSettingsFromSession(); ShowMode("settings"); }; heading.AddChild(gear);
-		_lobbyInfo = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart }; box.AddChild(_lobbyInfo);
-		_players = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsVertical = SizeFlags.ExpandFill }; box.AddChild(_players);
-		_startButton = new Button { Text = "Iniciar partida" }; _startButton.Pressed += () => _session.StartMatch(); box.AddChild(_startButton);
-		var leave = new Button { Text = "Salir de la sala" }; leave.Pressed += () => { _session.LeaveRoom(); ShowMode("browser"); _session.RefreshPublicRooms(_search.Text); }; box.AddChild(leave);
+		// Título y botones siempre visibles; los datos de la sala se desplazan.
+		var layout = new VBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill
+		};
+		layout.AddThemeConstantOverride("separation", 8);
+		_lobbyPanel.AddChild(layout);
+
+		var heading = new Label
+		{
+			Text = "OFICINA · SALA DE ESPERA",
+			AutowrapMode = TextServer.AutowrapMode.Off,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill
+		};
+		heading.AddThemeFontSizeOverride("font_size", 21);
+		heading.AddThemeColorOverride("font_color", new Color("d8f4ff"));
+		layout.AddChild(heading);
+
+		var gear = new Button { Text = "⚙ Configuración de sala", SizeFlagsHorizontal = SizeFlags.ShrinkEnd };
+		gear.Pressed += () => { SyncSettingsFromSession(); ShowMode("settings"); };
+		layout.AddChild(gear);
+
+		var scroll = new ScrollContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill
+		};
+		layout.AddChild(scroll);
+		var body = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		body.AddThemeConstantOverride("separation", 9);
+		scroll.AddChild(body);
+
+		_lobbyInfo = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+		body.AddChild(_lobbyInfo);
+		_players = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+		body.AddChild(_players);
+
+		// La contraseña sólo la ve el anfitrión de una sala privada.
+		_passwordRow = new HBoxContainer();
+		_passwordRow.AddChild(new Label { Text = "Clave:" });
+		_passwordPreview = new LineEdit
+		{
+			Secret = true,
+			Editable = false,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill
+		};
+		_passwordRow.AddChild(_passwordPreview);
+		var reveal = new CheckButton { Text = "Ver" };
+		reveal.Toggled += visible => _passwordPreview.Secret = !visible;
+		_passwordRow.AddChild(reveal);
+		body.AddChild(_passwordRow);
+
+		_playerCountLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+		_playerCountLabel.AddThemeFontSizeOverride("font_size", 18);
+		layout.AddChild(_playerCountLabel);
+
+		_startButton = new Button { Text = "INICIAR PARTIDA (mín. 4)" };
+		_startButton.Pressed += () => _session.StartMatch();
+		layout.AddChild(_startButton);
+
+		_testButton = new Button { Text = "PROBAR COOPERATIVO (mín. 2)" };
+		_testButton.Pressed += () => _session.StartMatch(true);
+		layout.AddChild(_testButton);
+
+		_lobbyMessage = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+		_lobbyMessage.AddThemeColorOverride("font_color", new Color("c9d8e3"));
+		layout.AddChild(_lobbyMessage);
+
+		var leave = new Button { Text = "Salir de la sala" };
+		leave.Pressed += () =>
+		{
+			_session.LeaveRoom();
+			ShowMode("browser");
+			_session.RefreshPublicRooms(_search.Text);
+		};
+		layout.AddChild(leave);
 	}
 
 	private void BuildLobbySettings()
@@ -140,13 +272,24 @@ public partial class MultiplayerMenu : Control
 		_lobbyRoomName = AddLine(box, "Nombre de la sala", "Sala de Red Flag");
 		var note = new Label { Text = "Solo el anfitrión puede cambiar estos valores.", AutowrapMode = TextServer.AutowrapMode.WordSmart }; box.AddChild(note);
 		// Reuse controls already created for initial setup; Godot nodes cannot have two parents, so settings are edited in-place through this panel's proxy controls.
-		var max = AddSpin(box, "Capacidad (3–15)", 8, 3, 15, 1); max.Name = "LobbyMaxPlayers";
+		var max = AddSpin(box, "Capacidad (4–15)", 8, 4, 15, 1); max.Name = "LobbyMaxPlayers";
 		var duration = AddSpin(box, "Duración (minutos)", 10, 1, 60, 1); duration.Name = "LobbyDuration";
 		var diff = AddOption(box, "Dificultad", new[] { "Fácil", "Normal", "Difícil" }, 1); diff.Name = "LobbyDifficulty";
 		var mode = AddOption(box, "Modo de juego", new[] { "Salva la red", "Impostor", "Destruye la red", "Impostor reverso" }, 1); mode.Name = "LobbyMode";
 		var priv = new CheckButton { Text = "Sala privada", Name = "LobbyPrivate" }; box.AddChild(priv);
-		var pass = AddLine(box, "Contraseña (vacío = generar)", ""); pass.Name = "LobbyPassword"; pass.Secret = true; pass.Editable = false;
-		priv.Toggled += pressed => pass.Editable = pressed;
+		var pass = AddLine(box, "Contraseña (vacío = generar)", "");
+		pass.Name = "LobbyPassword";
+		pass.Secret = true;
+		pass.MaxLength = 24;
+		pass.PlaceholderText = "Escribí una clave o dejala vacía para generarla";
+		pass.TextChanged += value =>
+		{
+			if (!string.IsNullOrWhiteSpace(value) && _session.IsHost)
+				priv.ButtonPressed = true;
+		};
+		var revealLobbyPassword = new CheckButton { Text = "Mostrar contraseña" };
+		revealLobbyPassword.Toggled += visible => pass.Secret = !visible;
+		box.AddChild(revealLobbyPassword);
 		var apply = new Button { Text = "Guardar configuración" }; apply.Pressed += () =>
 		{
 			if (!_session.IsHost) return;
@@ -200,7 +343,8 @@ public partial class MultiplayerMenu : Control
 		if (_lobbyRoomName != null) _lobbyRoomName.Text = _session.RoomName;
 		if (max != null) max.Value = _session.MaxPlayers; if (duration != null) duration.Value = _session.DurationMinutes;
 		if (diff != null) SelectOption(diff, _session.Difficulty); if (mode != null) SelectOption(mode, _session.GameMode);
-		if (priv != null) priv.ButtonPressed = _session.IsPrivate; if (pass != null) { pass.Text = _session.PrivatePassword; pass.Editable = _session.IsHost && _session.IsPrivate; }
+		if (priv != null) priv.ButtonPressed = _session.IsPrivate;
+		if (pass != null) { pass.Text = _session.PrivatePassword; pass.Editable = _session.IsHost; }
 	}
 
 	private void RefreshUi()
@@ -208,10 +352,31 @@ public partial class MultiplayerMenu : Control
 		if (!IsInsideTree()) return;
 		if (_session.IsInLobby)
 		{
-			ShowMode("lobby");
+			if (_settingsPanel == null || !_settingsPanel.Visible) ShowMode("lobby");
 			_lobbyInfo.Text = $"Sala: {_session.RoomName}\n{(_session.IsPrivate ? "Privada" : "Pública / descubrimiento LAN")} · {_session.GameMode}\nDuración: {_session.DurationMinutes} min · Dificultad: {_session.Difficulty}\nJugadores: {_session.ConnectedPlayerCount}/{_session.MaxPlayers} · Puerto UDP: {_session.Port}\nTu código: {PlayerPreferences.PlayerId}";
 			_players.Text = "JUGADORES CONECTADOS\n" + string.Join("\n", _session.Players.Select(p => $"• {p.Value}  [{_session.PlayerCodes.GetValueOrDefault(p.Key, "--------")}]" + (p.Key == 1 ? "  (ANFITRIÓN)" : "")));
-			_startButton.Disabled = !_session.IsHost; _status.Text = _session.Status;
+
+			int conectados = _session.ConnectedPlayerCount;
+			int capacidad = _session.MaxPlayers;
+			Color color = conectados <= 3 ? new Color("ff6b6b")
+				: conectados <= 5 ? new Color("ffd166") : new Color("6ee7a7");
+			_playerCountLabel.AddThemeColorOverride("font_color", color);
+			bool cooperativo = _session.GameMode == "Salva la red";
+			string detalle = conectados < 4
+				? cooperativo
+					? conectados < 2
+						? "Falta 1 para probar. Mínimo normal: 4."
+						: $"Prueba de 2 disponible · Faltan {4 - conectados} para normal."
+					: $"Faltan {4 - conectados} para partida normal."
+				: conectados <= 5 ? "Mínimo normal alcanzado." : "¡Sala lista!";
+			_playerCountLabel.Text = $"JUGADORES: {conectados}/{capacidad} · {detalle}";
+			_startButton.Disabled = !_session.IsHost;
+			_testButton.Visible = _session.GameMode == "Salva la red";
+			_testButton.Disabled = !_session.IsHost;
+			_passwordRow.Visible = _session.IsHost && _session.IsPrivate;
+			_passwordPreview.Text = _session.PrivatePassword;
+			_lobbyMessage.Text = _session.Status;
+			_status.Text = _session.Status;
 		}
 		else if (_session.IsConnected) { _status.Text = _session.Status; }
 		else { _status.Text = _session.Status; RefreshRoomResults(); }

@@ -12,6 +12,18 @@ public partial class GameOverScreen : CanvasLayer
 	public bool Victoria = false;
 	public string Motivo = "";
 	public string Resumen = "";
+    // En cooperativo sólo se puede volver al menú. Reintentar solo reiniciaría un cliente.
+    public bool EsCooperativo = false;
+
+    private void VolverAlMenu()
+    {
+        if (EsCooperativo)
+        {
+            NetworkSession sesion = GetNodeOrNull<NetworkSession>("/root/NetworkSession");
+            sesion?.LeaveRoom();
+        }
+        GetTree().ChangeSceneToFile("res://Scenes/MenuPrincipal.tscn");
+    }
 
 	private Control contenedor;
 	private Label lblTitulo;
@@ -176,11 +188,12 @@ public partial class GameOverScreen : CanvasLayer
 		caja.AddChild(botones);
 
 		Button btnReintentar = RedFlagUI.CrearBoton("REINTENTAR", tamBoton, true);
-		btnReintentar.Pressed += () => GetTree().ReloadCurrentScene();
+		btnReintentar.Visible = !EsCooperativo;
+        btnReintentar.Pressed += () => GetTree().ReloadCurrentScene();
 		botones.AddChild(btnReintentar);
 
 		Button btnMenu = RedFlagUI.CrearBoton("MENÚ PRINCIPAL", tamBoton);
-		btnMenu.Pressed += () => GetTree().ChangeSceneToFile("res://Scenes/MenuPrincipal.tscn");
+		btnMenu.Pressed += VolverAlMenu;
 		botones.AddChild(btnMenu);
 
 		if (!Victoria)
@@ -216,7 +229,8 @@ public partial class GameOverScreen : CanvasLayer
 		secuencia.TweenCallback(Callable.From(() =>
 		{
 			botones.Visible = true;
-			btnReintentar.GrabFocus();
+			if (EsCooperativo) btnMenu.GrabFocus();
+            else btnReintentar.GrabFocus();
 		}));
 	}
 
@@ -330,16 +344,18 @@ void fragment()
 
 		// Botones: zonas de clic sobre los de la imagen
 		Button btnReintentar = ZonaBoton(432, 795, 814, 875);
-		btnReintentar.Pressed += () => GetTree().ReloadCurrentScene();
+		btnReintentar.Visible = !EsCooperativo;
+        btnReintentar.Pressed += () => GetTree().ReloadCurrentScene();
 		contenedor.AddChild(btnReintentar);
 
 		Button btnMenu = ZonaBoton(858, 795, 1240, 875);
-		btnMenu.Pressed += () => GetTree().ChangeSceneToFile("res://Scenes/MenuPrincipal.tscn");
+		btnMenu.Pressed += VolverAlMenu;
 		contenedor.AddChild(btnMenu);
 
 		// La imagen aparece de a poco y el glitch entra recién después
 		CreateTween().TweenProperty(contenedor, "modulate:a", 1f, 1.2f);
-		btnReintentar.GrabFocus();
+		if (EsCooperativo) btnMenu.GrabFocus();
+        else btnReintentar.GrabFocus();
 	}
 
 	// Datos de la partida (se leen del Resumen) dibujados en el espacio libre de la imagen

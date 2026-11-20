@@ -2,6 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Text.Json;
 
 public partial class ComputerGameplay : Control
 {
@@ -123,9 +125,12 @@ public partial class ComputerGameplay : Control
 
 	public override void _Ready()
 	{
+		ConfigurarModoCooperativo();
 		datos = new DatosEscritorio();
+		if (modoCooperativo && sesionCoop.IsHost) datos.ListasCambio += ContarCambioListasCoop;
 
-		escritorio = new EscritorioUI { Datos = datos };
+		escritorio = new EscritorioUI { Datos = datos,
+			AlSalirMultijugador = modoCooperativo ? SalirCooperativo : null };
 		AddChild(escritorio);
 		lblTiempo = escritorio.LblTiempo;
 		lblHora = escritorio.LblHora;
@@ -169,9 +174,30 @@ public partial class ComputerGameplay : Control
 		AddChild(alertaSistema);
 		datos.ResponderCorreo = ResponderCorreo;
 		datos.CodigoDesdeCalculadora = RevisarCodigoCalculadora;
+		if (modoCooperativo && !sesionCoop.IsHost)
+		{
+			datos.AgregarListaRemota = blanca =>
+			{
+				if (!datos.Solicitud.Hay || juegoTerminado) return false;
+				sesionCoop.EnviarAccionCooperativa("AGREGAR_LISTA",
+					idSolicitudCliente.ToString() + "|" + (blanca ? "B" : "N"));
+				return true;
+			};
+			datos.QuitarListaRemota = (blanca, ip) =>
+			{
+				if (juegoTerminado) return;
+				sesionCoop.EnviarAccionCooperativa("QUITAR_LISTA",
+					(blanca ? "B" : "N") + "|" + ip);
+			};
+		}
 
 		AplicarConfig();
-		InicializarPantalla();
+		if (modoCooperativo && !sesionCoop.IsHost)
+		{
+			lblTiempo.Text = "SINCRONIZANDO...";
+			notif.Ocultar();
+		}
+		else InicializarPantalla();
 	}
 	
 	
@@ -275,6 +301,13 @@ public partial class ComputerGameplay : Control
 	public override void _Process(double delta)
 	{
 		ActualizarHora();
+		if (modoCooperativo && sesionCoop.IsHost && bloqueoDecisionesCoop > 0)
+			bloqueoDecisionesCoop = Math.Max(0, bloqueoDecisionesCoop - delta);
+		if (modoCooperativo && !sesionCoop.IsHost)
+		{
+			ActualizarInterfazClienteCoop();
+			return;
+		}
 		ActualizarTiempoPartida(delta);
 
 		if (!reinicioEmergenciaEnCurso)
@@ -285,6 +318,7 @@ public partial class ComputerGameplay : Control
 		}
 
 		SincronizarDatos();
+		if (modoCooperativo) EnviarEstadoCoop(delta);
 	}
 
 	// ------------------------------------------------------------------
@@ -767,8 +801,15 @@ public partial class ComputerGameplay : Control
 
 	private void OnAceptarPressed()
 	{
-		if (juegoTerminado)
+		if (modoCooperativo && !sesionCoop.IsHost)
+		{
+			EnviarDecisionCoop("ACEPTAR");
 			return;
+		}
+		if (juegoTerminado ||
+			(modoCooperativo && sesionCoop.IsHost && bloqueoDecisionesCoop > 0))
+			return;
+		if (modoCooperativo) bloqueoDecisionesCoop = 0.25;
 
 		// Durante el phishing, un fallo puede invertir las próximas 3 decisiones.
 		if (inversionesPendientes > 0)
@@ -789,8 +830,15 @@ public partial class ComputerGameplay : Control
 
 	private void OnRechazarPressed()
 	{
-		if (juegoTerminado)
+		if (modoCooperativo && !sesionCoop.IsHost)
+		{
+			EnviarDecisionCoop("RECHAZAR");
 			return;
+		}
+		if (juegoTerminado ||
+			(modoCooperativo && sesionCoop.IsHost && bloqueoDecisionesCoop > 0))
+			return;
+		if (modoCooperativo) bloqueoDecisionesCoop = 0.25;
 
 		if (inversionesPendientes > 0)
 		{
@@ -870,6 +918,7 @@ public partial class ComputerGameplay : Control
 	private void CrearCorreo()
 	{
 		CorreoEmergencia correo = new CorreoEmergencia();
+		numeroCorreoCoop++;
 		correo.Tipo = ElegirTipo();
 		// Tiempo para completar la tarea del correo según la dificultad elegida
 		switch (PartidaConfig.Nivel)
@@ -956,6 +1005,11 @@ public partial class ComputerGameplay : Control
 	}
 	private void ResponderCorreo(string respuesta)
 	{
+		if (modoCooperativo && !sesionCoop.IsHost)
+		{
+			EnviarRespuestaCoop(respuesta);
+			return;
+		}
 		CorreoEmergencia correo = datos.CorreoActual;
 		if (juegoTerminado || correo == null || !correo.Pendiente) return;
 		bool correcto;
@@ -1114,6 +1168,8 @@ public partial class ComputerGameplay : Control
 	private void FinDelJuego(bool victoria, string motivo)
 	{
 		juegoTerminado = true;
+		resultadoCoopVictoria = victoria;
+		resultadoCoopMotivo = motivo;
 		if (datos.CorreoActual != null) datos.CorreoActual.Pendiente = false;
 		avisoEmergencia.Ocultar();
 		alertaSistema.Ocultar();
@@ -1137,11 +1193,350 @@ public partial class ComputerGameplay : Control
 			$"Correos urgentes fallidos: {fallidosCorreo}\n" +
 			$"Tiempo: {TimeSpan.FromSeconds(tiempoJugado):mm\\:ss}";
 
+		resultadoCoopResumen = resumen;
 		AddChild(new GameOverScreen
 		{
 			Victoria = victoria,
 			Motivo = motivo,
-			Resumen = resumen
+			Resumen = resumen,
+			EsCooperativo = modoCooperativo
 		});
+		if (modoCooperativo) EnviarEstadoCoop(1);
 	}
+
+	// ----------------------------------------------------------
+	// MULTIJUGADOR COOPERATIVO: anfitrión controla el estado
+	// ----------------------------------------------------------
+	private bool modoCooperativo = false;
+	private NetworkSession sesionCoop;
+	private double envioCoopAcumulado = 0;
+	private double bloqueoDecisionesCoop = 0;
+	private bool desconexionNotificada = false;
+	private int idSolicitudCliente = 0;
+	private int numeroCorreoCoop = 0;
+	private int numeroCorreoCliente = -1;
+	private int ultimoIdMostrado = -1;
+	private int ultimoErrorVirusCliente = 0;
+	private int versionListasCoop = 0;
+	private int ultimaVersionListasCoop = -1;
+	private bool resultadoCoopVictoria = false;
+	private string resultadoCoopMotivo = "";
+	private string resultadoCoopResumen = "";
+	private static readonly JsonSerializerOptions OpcionesCoop = new JsonSerializerOptions
+	{
+		IncludeFields = true
+	};
+
+	private void ConfigurarModoCooperativo()
+	{
+		sesionCoop = GetNodeOrNull<NetworkSession>("/root/NetworkSession");
+		modoCooperativo = sesionCoop != null && sesionCoop.IsConnected &&
+						  !sesionCoop.IsInLobby && sesionCoop.GameMode == "Salva la red";
+		if (!modoCooperativo) return;
+
+		PartidaConfig.Modo = ModoJuego.TurnoDeGuardia;
+		PartidaConfig.DuracionMinutos = sesionCoop.DurationMinutes;
+		switch (sesionCoop.Difficulty.Trim().ToLowerInvariant())
+		{
+			case "fácil":
+			case "facil": PartidaConfig.Nivel = Dificultad.Facil; break;
+			case "difícil":
+			case "dificil": PartidaConfig.Nivel = Dificultad.Dificil; break;
+			default: PartidaConfig.Nivel = Dificultad.Normal; break;
+		}
+
+		if (sesionCoop.IsHost)
+		{
+			sesionCoop.AccionCooperativaRecibida += ProcesarAccionCoop;
+			// La suscripción se completa en _Ready, después de construir DatosEscritorio.
+		}
+		else
+			sesionCoop.EstadoCooperativoRecibido += AplicarEstadoCoop;
+	}
+
+	public override void _ExitTree()
+	{
+		if (!modoCooperativo || sesionCoop == null) return;
+		if (sesionCoop.IsHost)
+		{
+			sesionCoop.AccionCooperativaRecibida -= ProcesarAccionCoop;
+			if (datos != null) datos.ListasCambio -= ContarCambioListasCoop;
+		}
+		else
+			sesionCoop.EstadoCooperativoRecibido -= AplicarEstadoCoop;
+	}
+
+	private void ContarCambioListasCoop() { versionListasCoop++; }
+
+	private void SalirCooperativo()
+	{
+		if (sesionCoop == null) return;
+		sesionCoop.LeaveRoom();
+		GetTree().ChangeSceneToFile("res://Scenes/MenuPrincipal.tscn");
+	}
+
+	private void EnviarDecisionCoop(string accion)
+	{
+		if (juegoTerminado || idSolicitudCliente <= 0 || !datos.Solicitud.Hay) return;
+		sesionCoop.EnviarAccionCooperativa(accion,
+			idSolicitudCliente.ToString(CultureInfo.InvariantCulture));
+	}
+
+	private void EnviarRespuestaCoop(string respuesta)
+	{
+		if (juegoTerminado || numeroCorreoCliente <= 0 ||
+			datos.CorreoActual == null || !datos.CorreoActual.Pendiente) return;
+		sesionCoop.EnviarAccionCooperativa("CORREO",
+			numeroCorreoCliente.ToString(CultureInfo.InvariantCulture) + "|" + respuesta);
+	}
+
+	private void ProcesarAccionCoop(long remitente, string accion, string valor)
+	{
+		// Las llamadas sólo llegan desde NetworkSession, que verifica el peer registrado.
+		if (!modoCooperativo || !sesionCoop.IsHost || juegoTerminado) return;
+		if (bloqueoDecisionesCoop > 0 &&
+			(accion == "ACEPTAR" || accion == "RECHAZAR")) return;
+		if (accion == "ACEPTAR" || accion == "RECHAZAR")
+		{
+			if (!int.TryParse(valor, out int id) || id != conexionesHoy ||
+				!datos.Solicitud.Hay || conexionActual == null) return;
+			if (accion == "ACEPTAR") OnAceptarPressed();
+			else OnRechazarPressed();
+		}
+		else if (accion == "CORREO")
+		{
+			int separador = valor.IndexOf('|');
+			if (separador <= 0 || separador > 12) return;
+			if (!int.TryParse(valor[..separador], out int id) ||
+				id != numeroCorreoCoop || datos.CorreoActual == null ||
+				!datos.CorreoActual.Pendiente) return;
+			string respuesta = valor[(separador + 1)..];
+			if (respuesta.Length > 32) return;
+			// La calculadora y el correo verifican las respuestas con las mismas reglas
+			// que el modo individual. Nunca confiamos en una respuesta "correcta" del cliente.
+			ResponderCorreo(respuesta);
+		}
+		else if (accion == "AGREGAR_LISTA")
+		{
+			string[] partes = valor.Split('|', 2);
+			if (partes.Length == 2 && int.TryParse(partes[0], out int id) &&
+				id == conexionesHoy && datos.Solicitud.Hay &&
+				(partes[1] == "B" || partes[1] == "N"))
+				datos.AgregarALista(partes[1] == "B");
+		}
+		else if (accion == "QUITAR_LISTA")
+		{
+			string[] partes = valor.Split('|', 2);
+			if (partes.Length == 2 && partes[1].Length < 64 &&
+				(partes[0] == "B" || partes[0] == "N"))
+			{
+				bool blanca = partes[0] == "B";
+				EntradaLista entrada = (blanca ? datos.Whitelist : datos.Blacklist)
+					.FirstOrDefault(x => x.IP == partes[1]);
+				if (entrada != null) datos.QuitarDeLista(blanca, entrada);
+			}
+		}
+		// Refrescar también al pulsar una acción, sin esperar al siguiente pulso periódico.
+		EnviarEstadoCoop(1.0);
+	}
+
+	private void EnviarEstadoCoop(double delta)
+	{
+		if (!modoCooperativo || sesionCoop == null || !sesionCoop.IsHost) return;
+		envioCoopAcumulado += delta;
+		if (envioCoopAcumulado < 0.25) return;
+		envioCoopAcumulado = 0;
+
+		CorreoEmergencia c = datos.CorreoActual;
+		CorreoEmergencia correoPublico = c == null ? null : new CorreoEmergencia
+		{
+			Tipo = c.Tipo, Remitente = c.Remitente, Asunto = c.Asunto,
+			Cuerpo = c.Cuerpo, Resultado = c.Resultado, Pendiente = c.Pendiente,
+			TiempoRestante = c.TiempoRestante, TiempoTotal = c.TiempoTotal,
+			// No transmitir la respuesta ni la clasificación secreta en el paquete.
+			RespuestaCorrecta = 0, AlertaReal = false
+		};
+
+		EstadoCooperativo e = new EstadoCooperativo
+		{
+			NumeroSolicitud = conexionesHoy,
+			NumeroCorreo = numeroCorreoCoop,
+			VersionListas = versionListasCoop,
+			Solicitud = new SolicitudActual
+			{
+				Hay = datos.Solicitud.Hay, Nombre = datos.Solicitud.Nombre,
+				Area = datos.Solicitud.Area, Rol = datos.Solicitud.Rol,
+				IP = datos.Solicitud.IP, MAC = datos.Solicitud.MAC
+			},
+			Correo = correoPublico,
+			Tiempo = datos.TiempoTurno,
+			AutoRestante = Math.Max(0, autoAceptar),
+			AutoMaximo = segundosAuto,
+			Puntos = puntos,
+			Conexiones = conexionesHoy,
+			ErroresAceptar = erroresAceptar,
+			ErroresRechazar = erroresRechazar,
+			AutoAceptadas = autoAceptadas,
+			MaxErroresAceptar = maxErroresAceptar,
+			MaxErroresRechazar = maxErroresRechazar,
+			MaxAutoAceptadas = maxAutoAceptadas,
+			Inversiones = inversionesPendientes,
+			Protecciones = proteccionesPendientes,
+			CorreosCorrectos = correctosCorreo,
+			CorreosFallidos = fallidosCorreo,
+			EstadoAntivirus = datos.EstadoAntivirus,
+			Aviso = ultimoMensaje,
+			DuracionAviso = tiempoAviso,
+			Historial = datos.Historial.TakeLast(25).ToList(),
+			Blancas = datos.Whitelist.TakeLast(60).ToList(),
+			Negras = datos.Blacklist.TakeLast(60).ToList(),
+			HistorialEmergencias = datos.HistorialEmergencias.TakeLast(25).ToList(),
+			Terminada = juegoTerminado,
+			Victoria = resultadoCoopVictoria,
+			MotivoFinal = resultadoCoopMotivo,
+			ResumenFinal = resultadoCoopResumen
+		};
+		sesionCoop.EnviarEstadoCooperativo(JsonSerializer.Serialize(e, OpcionesCoop));
+	}
+
+	private void ActualizarInterfazClienteCoop()
+	{
+		if (!sesionCoop.IsConnected)
+		{
+			if (!desconexionNotificada)
+			{
+				desconexionNotificada = true;
+				GetTree().ChangeSceneToFile("res://Scenes/MultiplayerMenu.tscn");
+			}
+			return;
+		}
+		if (datos.Solicitud.Hay && !juegoTerminado)
+			notif.ActualizarTiempo(datos.AutoAceptarRestante, segundosAuto);
+		if (!juegoTerminado)
+			avisoEmergencia.Actualizar(datos.CorreoActual, inversionesPendientes,
+				proteccionesPendientes, tiempoAviso, ultimoMensaje);
+	}
+
+	private void AplicarEstadoCoop(string json)
+	{
+		if (!modoCooperativo || sesionCoop.IsHost || !IsInsideTree() ||
+			json == null || json.Length > 120000) return;
+		EstadoCooperativo e;
+		try { e = JsonSerializer.Deserialize<EstadoCooperativo>(json, OpcionesCoop); }
+		catch (JsonException) { return; }
+		if (e == null) return;
+
+		idSolicitudCliente = e.NumeroSolicitud;
+		segundosAuto = e.AutoMaximo;
+		puntos = e.Puntos;
+		conexionesHoy = e.Conexiones;
+		erroresAceptar = e.ErroresAceptar;
+		erroresRechazar = e.ErroresRechazar;
+		autoAceptadas = e.AutoAceptadas;
+		maxErroresAceptar = e.MaxErroresAceptar;
+		maxErroresRechazar = e.MaxErroresRechazar;
+		maxAutoAceptadas = e.MaxAutoAceptadas;
+		inversionesPendientes = e.Inversiones;
+		proteccionesPendientes = e.Protecciones;
+		correctosCorreo = e.CorreosCorrectos;
+		fallidosCorreo = e.CorreosFallidos;
+		ultimoMensaje = e.Aviso ?? "";
+		tiempoAviso = e.DuracionAviso;
+		datos.EstadoAntivirus = e.EstadoAntivirus ?? "";
+		datos.TiempoTurno = e.Tiempo;
+		autoAceptar = e.AutoRestante;
+		lblTiempo.Text = TimeSpan.FromSeconds(Math.Max(0, e.Tiempo)).ToString(@"mm\:ss");
+		lblPuntos.Text = e.Puntos.ToString();
+		lblConexiones.Text = e.Conexiones.ToString();
+
+		SolicitudActual s = e.Solicitud ?? new SolicitudActual();
+		datos.Solicitud.Hay = s.Hay && !e.Terminada;
+		datos.Solicitud.Nombre = s.Nombre ?? "";
+		datos.Solicitud.Area = s.Area ?? "";
+		datos.Solicitud.Rol = s.Rol ?? "";
+		datos.Solicitud.IP = s.IP ?? "";
+		datos.Solicitud.MAC = s.MAC ?? "";
+
+		if (e.NumeroSolicitud != ultimoIdMostrado)
+		{
+			ultimoIdMostrado = e.NumeroSolicitud;
+			if (datos.Solicitud.Hay)
+				notif.Mostrar(s.Nombre, s.Rol, s.Area, s.IP, s.MAC);
+		}
+		if (!datos.Solicitud.Hay) notif.Ocultar();
+		if (erroresAceptar > ultimoErrorVirusCliente)
+			alertaRoja.Pulso(erroresAceptar / (float)Math.Max(1, maxErroresAceptar));
+		ultimoErrorVirusCliente = erroresAceptar;
+
+		// Mantener el mismo objeto de correo para no reiniciar la interfaz de lectura
+		// en cada paquete de sincronización.
+		CorreoEmergencia c = e.Correo;
+		bool nuevoCorreo = e.NumeroCorreo != numeroCorreoCliente;
+		bool refrescarCorreo = nuevoCorreo;
+		if (c != null)
+		{
+			if (nuevoCorreo || datos.CorreoActual == null)
+				datos.CorreoActual = new CorreoEmergencia();
+			CorreoEmergencia local = datos.CorreoActual;
+			if (local.Pendiente != c.Pendiente || local.Resultado != c.Resultado ||
+				(int)Math.Ceiling(local.TiempoRestante) != (int)Math.Ceiling(c.TiempoRestante))
+				refrescarCorreo = true;
+			local.Tipo = c.Tipo;
+			local.Remitente = c.Remitente;
+			local.Asunto = c.Asunto;
+			local.Cuerpo = c.Cuerpo;
+			local.Resultado = c.Resultado;
+			local.Pendiente = c.Pendiente;
+			local.TiempoRestante = c.TiempoRestante;
+			local.TiempoTotal = c.TiempoTotal;
+		}
+		else if (datos.CorreoActual != null)
+		{
+			datos.CorreoActual = null;
+			refrescarCorreo = true;
+		}
+		numeroCorreoCliente = e.NumeroCorreo;
+		if (refrescarCorreo) datos.AvisarCorreo();
+
+		// Las listas y logs sólo se copian cuando cambia una conexión.
+		if (e.NumeroSolicitud != ultimoRegistroCoop ||
+			e.VersionListas != ultimaVersionListasCoop ||
+			(refrescarCorreo && c != null && !c.Pendiente))
+		{
+			ultimoRegistroCoop = e.NumeroSolicitud;
+			ultimaVersionListasCoop = e.VersionListas;
+			datos.Historial.Clear();
+			if (e.Historial != null) datos.Historial.AddRange(e.Historial);
+			datos.Whitelist.Clear();
+			if (e.Blancas != null) datos.Whitelist.AddRange(e.Blancas);
+			datos.Blacklist.Clear();
+			if (e.Negras != null) datos.Blacklist.AddRange(e.Negras);
+			datos.HistorialEmergencias.Clear();
+			if (e.HistorialEmergencias != null)
+				datos.HistorialEmergencias.AddRange(e.HistorialEmergencias);
+			datos.AvisarListas();
+		}
+		SincronizarDatos();
+		datos.AvisarCambio();
+
+		if (e.Terminada && !juegoTerminado)
+		{
+			juegoTerminado = true;
+			avisoEmergencia.Ocultar();
+			alertaSistema.Ocultar();
+			datos.Solicitud.Hay = false;
+			redFlagApp.Cerrar();
+			notif.AppAbierta(false);
+			notif.Ocultar();
+			AddChild(new GameOverScreen
+			{
+				Victoria = e.Victoria,
+				Motivo = e.MotivoFinal,
+				Resumen = e.ResumenFinal,
+				EsCooperativo = true
+			});
+		}
+	}
+
+	private int ultimoRegistroCoop = -1;
 }
