@@ -3,31 +3,55 @@ using System;
 
 public partial class Chair : Node2D
 {
-
 	private bool playerNear = false;
+	private Player jugador;
+	private ConfigPartidaPanel panelConfig;
+    private bool listoMultijugador = false;
 
-	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
 		GetNode<Area2D>("Area2D").BodyEntered += OnBodyEntered;
 		GetNode<Area2D>("Area2D").BodyExited += OnBodyExited;
 	}
 
-	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
-		if(playerNear && Input.IsKeyPressed(Key.E))
+		if (playerNear && panelConfig == null && Input.IsKeyPressed(Key.E))
 		{
-			GetTree().ChangeSceneToFile("res://Scenes/ComputerGameplay.tscn");
+			AbrirConfig();
 		}
+	}
+
+	private void AbrirConfig()
+	{
+        NetworkSession sesion = GetNodeOrNull<NetworkSession>("/root/NetworkSession");
+        if (sesion != null && sesion.IsConnected && !sesion.IsInLobby)
+        {
+            if (sesion.GameMode == "Salva la red" && !listoMultijugador)
+            {
+                listoMultijugador = true;
+                sesion.MarcarListoCooperativo();
+            }
+            // En una partida online la silla nunca abre ComputerGameplay individual.
+            return;
+        }
+		if (jugador != null) jugador.CanControl = false;
+
+		panelConfig = new ConfigPartidaPanel();
+		panelConfig.AlComenzar = () => GetTree().ChangeSceneToFile("res://Scenes/ComputerGameplay.tscn");
+		panelConfig.AlCancelar = () =>
+		{
+			panelConfig = null;
+			if (jugador != null) jugador.CanControl = true;
+		};
+		AddChild(panelConfig);
 	}
 
 	private void OnBodyEntered(Node body)
 	{
-		GD.Print($"Entró algo: + {body.Name}");
-		if(body is Player)
+		if (body is Player p)
 		{
-			GD.Print("Entró el Player");
+			jugador = p;
 			playerNear = true;
 			GetNode<Sprite2D>("InteractPrompt").Visible = true;
 		}
@@ -35,7 +59,7 @@ public partial class Chair : Node2D
 
 	private void OnBodyExited(Node body)
 	{
-		if(body is Player)
+		if (body is Player)
 		{
 			playerNear = false;
 			GetNode<Sprite2D>("InteractPrompt").Visible = false;

@@ -1,13 +1,27 @@
 [gd_scene format=3 uid="uid://byp4lo4et57j"]
 
 [ext_resource type="Script" uid="uid://14f8ci4b7fdj" path="res://Scripts/MenuPrincipal.cs" id="1_wvohi"]
-[ext_resource type="Texture2D" uid="uid://cxijn1djota54" path="res://Resources/MainMenuWallpaper.png" id="2_bt1tr"]
-[ext_resource type="AudioStream" uid="uid://il61d86ssdl1" path="res://Resources/Audio/maintheme.mp3" id="3_bt1tr"]
-[ext_resource type="Texture2D" uid="uid://bouyeos0j0ol3" path="res://Resources/SingleplayerButton.png" id="3_vtrnu"]
-[ext_resource type="Texture2D" uid="uid://cys5j1elnphdn" path="res://Resources/MultiPlayerButton.png" id="4_hbekh"]
-[ext_resource type="Texture2D" uid="uid://c6vegun8u6k1p" path="res://Resources/OptionsButton.png" id="5_pkrck"]
-[ext_resource type="Texture2D" uid="uid://d1bu6v0ycqqh" path="res://Resources/ExitButton.png" id="6_pkrck"]
-[ext_resource type="Texture2D" uid="uid://b02hpivfvfqty" path="res://Resources/MainTitle.png" id="7_qovuk"]
+[ext_resource type="Texture2D" uid="uid://cxijn1djota54" path="res://Resources/MainMenuWallpaper.png" id="2_iie3u"]
+[ext_resource type="Texture2D" uid="uid://b02hpivfvfqty" path="res://Resources/MainTitle.png" id="3_178yi"]
+[ext_resource type="Texture2D" uid="uid://bouyeos0j0ol3" path="res://Resources/SingleplayerButton.png" id="4_iie3u"]
+[ext_resource type="Texture2D" uid="uid://cys5j1elnphdn" path="res://Resources/MultiPlayerButton.png" id="5_178yi"]
+[ext_resource type="Texture2D" uid="uid://c5270puae85rf" path="res://Resources/Botones/OptionsButton.png" id="6_leqnn"]
+[ext_resource type="Texture2D" uid="uid://d1bu6v0ycqqh" path="res://Resources/ExitButton.png" id="7_iie3u"]
+[ext_resource type="Texture2D" uid="uid://cuhah82iw1882" path="res://Resources/Fondos/Opciones #U2013 plantilla.png" id="8_iie3u"]
+[ext_resource type="Texture2D" uid="uid://daddv5rdk0hs4" path="res://Resources/Botones/CierreOpciones.png" id="9_178yi"]
+[ext_resource type="Texture2D" uid="uid://cg0wg1u2rwll0" path="res://Resources/Botones/BotonPantalla.png" id="10_leqnn"]
+[ext_resource type="Texture2D" uid="uid://brbgby5tvt8vd" path="res://Resources/Botones/BotonSonido.png" id="11_igdqj"]
+[ext_resource type="Texture2D" uid="uid://we0x4nedai5i" path="res://Resources/Botones/BotonGraficos.png" id="12_y4bse"]
+[ext_resource type="Texture2D" uid="uid://ch10xjbsx7uip" path="res://Resources/Botones/BotonPerfil.png" id="13_bnhv6"]
+[ext_resource type="Texture2D" uid="uid://x2apff0nbmum" path="res://Resources/Botones/Bot#U00f3nActualizar.png" id="14_178yi"]
+[ext_resource type="AudioStream" uid="uid://btr11vn0rr2eu" path="res://Resources/Audio/M#U00fasica/maintheme.mp3" id="14_iie3u"]
+[ext_resource type="Texture2D" uid="uid://ovwdk0qd3lul" path="res://Resources/Botones/Bot#U00f3nCrearSala.png" id="15_y4bse"]
+[ext_resource type="Texture2D" uid="uid://c6won513xxjck" path="res://Resources/Botones/Bot#U00f3nUnirseASala.png" id="16_bnhv6"]
+[ext_resource type="Texture2D" uid="uid://ci2qdtho1gmkk" path="res://Resources/Botones/Bot#U00f3nVolver.png" id="17_otago"]
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_j3pel"]
+color = Color(0, 0.22686934, 0.3978673, 1)
+thickness = 7
 
 [sub_resource type="Animation" id="Animation_l10t8"]
 resource_name = "Animacion backloop"
@@ -217,7 +231,7 @@ offset_top = -238.0
 offset_right = 1940.3955
 offset_bottom = 887.0
 mouse_filter = 2
-texture = ExtResource("2_bt1tr")
+texture = ExtResource("2_iie3u")
 expand_mode = 1
 stretch_mode = 5
 
@@ -228,7 +242,7 @@ offset_top = -234.0
 offset_right = 3945.4624
 offset_bottom = 891.0
 mouse_filter = 2
-texture = ExtResource("2_bt1tr")
+texture = ExtResource("2_iie3u")
 expand_mode = 1
 stretch_mode = 5
 
@@ -239,7 +253,7 @@ offset_left = 233.0
 offset_top = 60.0
 offset_right = 888.5
 offset_bottom = 497.0
-texture = ExtResource("7_qovuk")
+texture = ExtResource("3_178yi")
 expand_mode = 1
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Control" unique_id=2074930447]
@@ -253,19 +267,19 @@ alignment = 1
 
 [node name="Singleplayer" type="Button" parent="Control/VBoxContainer" unique_id=553792421]
 layout_mode = 2
-icon = ExtResource("3_vtrnu")
+icon = ExtResource("4_iie3u")
 icon_alignment = 1
 
 [node name="Multiplayer" type="Button" parent="Control/VBoxContainer" unique_id=160032478]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-icon = ExtResource("4_hbekh")
+icon = ExtResource("5_178yi")
 icon_alignment = 1
 
 [node name="Opciones" type="Button" parent="Control/VBoxContainer" unique_id=845717183]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-icon = ExtResource("5_pkrck")
+icon = ExtResource("6_leqnn")
 icon_alignment = 1
 
 [node name="Salir" type="Button" parent="Control/VBoxContainer" unique_id=765059266]
@@ -273,7 +287,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "
  "
-icon = ExtResource("6_pkrck")
+icon = ExtResource("7_iie3u")
 icon_alignment = 1
 
 [node name="ColorRect" type="ColorRect" parent="Control" unique_id=316654767]
@@ -282,11 +296,181 @@ offset_right = 1157.0
 offset_bottom = 654.0
 color = Color(0, 0, 0, 0)
 
+[node name="SettingsImage" type="TextureRect" parent="Control" unique_id=1527082426]
+visible = false
+layout_mode = 0
+offset_left = 151.0
+offset_top = 96.0
+offset_right = 944.83185
+offset_bottom = 557.0
+texture = ExtResource("8_iie3u")
+expand_mode = 1
+
+[node name="SettingsPanel" type="Panel" parent="Control" unique_id=1612963400]
+visible = false
+layout_mode = 0
+offset_left = 152.0
+offset_top = 95.0
+offset_right = 944.0
+offset_bottom = 554.0
+
+[node name="ExitSettingsButton" type="Button" parent="Control/SettingsPanel" unique_id=1295652462]
+layout_mode = 0
+offset_left = 759.0
+offset_top = 8.0
+offset_right = 786.0
+offset_bottom = 36.0
+icon = ExtResource("9_178yi")
+icon_alignment = 1
+expand_icon = true
+
+[node name="OpcionesPantalla" type="Button" parent="Control/SettingsPanel" unique_id=555091388]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 49.0
+offset_right = 140.33331
+offset_bottom = 89.0
+icon = ExtResource("10_leqnn")
+icon_alignment = 1
+expand_icon = true
+
+[node name="Panel" type="Panel" parent="Control/SettingsPanel/OpcionesPantalla" unique_id=375456844]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.52900004
+anchor_right = -0.52900004
+offset_left = 74.94633
+offset_top = 41.0
+offset_right = 836.94635
+offset_bottom = 386.0
+
+[node name="OpcionesSonido" type="Button" parent="Control/SettingsPanel" unique_id=1049876728]
+layout_mode = 0
+offset_left = 140.0
+offset_top = 45.0
+offset_right = 254.0
+offset_bottom = 92.0
+icon = ExtResource("11_igdqj")
+icon_alignment = 1
+expand_icon = true
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Control/SettingsPanel/OpcionesSonido" unique_id=520452059]
+layout_mode = 0
+offset_left = -123.0
+offset_top = 41.0
+offset_right = 639.0
+offset_bottom = 386.0
+
+[node name="PanelOpciones" type="Panel" parent="Control/SettingsPanel/OpcionesSonido/ScrollContainer" unique_id=358368727]
+layout_mode = 2
+
+[node name="ControlGeneral" type="HSlider" parent="Control/SettingsPanel/OpcionesSonido/ScrollContainer/PanelOpciones" unique_id=78074439]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 57.0
+offset_right = 409.0
+offset_bottom = 92.0
+theme_override_styles/slider = SubResource("StyleBoxLine_j3pel")
+value = 60.0
+
+[node name="ControlMusica" type="HSlider" parent="Control/SettingsPanel/OpcionesSonido/ScrollContainer/PanelOpciones" unique_id=1884575878]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 151.0
+offset_right = 409.0
+offset_bottom = 186.0
+theme_override_styles/slider = SubResource("StyleBoxLine_j3pel")
+value = 60.0
+
+[node name="ControlSFX" type="HSlider" parent="Control/SettingsPanel/OpcionesSonido/ScrollContainer/PanelOpciones" unique_id=1057358757]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 245.0
+offset_right = 409.0
+offset_bottom = 280.0
+theme_override_styles/slider = SubResource("StyleBoxLine_j3pel")
+value = 60.0
+
+[node name="OpcionesGraficos" type="Button" parent="Control/SettingsPanel" unique_id=286022229]
+layout_mode = 0
+offset_left = 254.0
+offset_top = 46.0
+offset_right = 380.13333
+offset_bottom = 90.0
+icon = ExtResource("12_y4bse")
+icon_alignment = 1
+expand_icon = true
+
+[node name="Panel" type="Panel" parent="Control/SettingsPanel/OpcionesGraficos" unique_id=93043625]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.52900004
+anchor_right = -0.52900004
+offset_left = -171.27545
+offset_top = 46.0
+offset_right = 590.72455
+offset_bottom = 391.0
+
+[node name="OpcionesPerfil" type="Button" parent="Control/SettingsPanel" unique_id=1527509781]
+layout_mode = 0
+offset_left = 379.0
+offset_top = 45.0
+offset_right = 506.0
+offset_bottom = 91.0
+icon = ExtResource("13_bnhv6")
+icon_alignment = 1
+expand_icon = true
+
+[node name="Panel" type="Panel" parent="Control/SettingsPanel/OpcionesPerfil" unique_id=908837683]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.52900004
+anchor_right = -0.52900004
+offset_left = -296.817
+offset_top = 39.0
+offset_right = 465.183
+offset_bottom = 384.0
+
+[node name="MultiPlayerPanel" type="Panel" parent="Control" unique_id=1142440489]
+visible = false
+layout_mode = 0
+offset_left = 150.0
+offset_top = 94.0
+offset_right = 949.0
+offset_bottom = 552.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/MultiPlayerPanel" unique_id=1531507725]
+layout_mode = 0
+offset_left = 627.0
+offset_top = 154.0
+offset_right = 779.0
+offset_bottom = 327.0
+
+[node name="RefreshButton" type="Button" parent="Control/MultiPlayerPanel/VBoxContainer" unique_id=1926326931]
+layout_mode = 2
+icon = ExtResource("14_178yi")
+
+[node name="CreateButton" type="Button" parent="Control/MultiPlayerPanel/VBoxContainer" unique_id=1056792360]
+layout_mode = 2
+icon = ExtResource("15_y4bse")
+
+[node name="JoinButton" type="Button" parent="Control/MultiPlayerPanel/VBoxContainer" unique_id=66624951]
+layout_mode = 2
+icon = ExtResource("16_bnhv6")
+
+[node name="BackButton" type="Button" parent="Control/MultiPlayerPanel/VBoxContainer" unique_id=1776233265]
+layout_mode = 2
+icon = ExtResource("17_otago")
+
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=1979720551]
-stream = ExtResource("3_bt1tr")
+stream = ExtResource("14_iie3u")
 volume_db = 3.152
 autoplay = true
 panning_strength = 0.0
+bus = &"Music"
 parameters/looping = true
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=118226499]
